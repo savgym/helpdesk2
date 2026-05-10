@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(AGENT)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  assignedTickets Ticket[] @relation("AssignedAgent")
+}
+
+enum Role {
+  ADMIN
+  AGENT
+}
+
+model Ticket {
+  id           String          @id @default(cuid())
+  subject      String
+  body         String
+  status       TicketStatus    @default(OPEN)
+  category     TicketCategory?
+  senderEmail  String
+  senderName   String?
+  assignedTo   User?           @relation("AssignedAgent", fields: [assignedToId], references: [id])
+  assignedToId String?
+  messages     Message[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+}
+
+enum TicketStatus {
+  OPEN
+  RESOLVED
+  CLOSED
+}
+
+enum TicketCategory {
+  GENERAL_QUESTION
+  TECHNICAL_QUESTION
+  REFUND_REQUEST
+}
+
+model Message {
+  id         String     @id @default(cuid())
+  ticket     Ticket     @relation(fields: [ticketId], references: [id])
+  ticketId   String
+  body       String
+  senderType SenderType
+  createdAt  DateTime   @default(now())
+}
+
+enum SenderType {
+  CUSTOMER
+  AGENT
+}
+
+model Session {
+  id        String   @id
+  sid       String   @unique
+  data      String
+  expiresAt DateTime
+}
