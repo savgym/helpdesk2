@@ -1,30 +1,24 @@
-import prisma from "../lib/prisma";
-import bcrypt from "bcryptjs";
+import { auth } from "../lib/auth";
 
 async function main() {
-  const existing = await prisma.user.findUnique({
-    where: { email: "admin@example.com" },
-  });
+  const existing = await auth.api
+    .signInEmail({ body: { email: "admin@example.com", password: "REDACTED" } })
+    .catch(() => null);
 
   if (existing) {
     console.log("Admin already exists, skipping seed.");
     return;
   }
 
-  const passwordHash = await bcrypt.hash("REDACTED", 10);
-
-  await prisma.user.create({
-    data: {
+  await auth.api.signUpEmail({
+    body: {
       name: "Admin",
       email: "admin@example.com",
-      passwordHash,
-      role: "ADMIN",
+      password: "REDACTED",
     },
   });
 
   console.log("Admin user created: admin@example.com / REDACTED");
 }
 
-main()
-  .catch(console.error)
-  .finally(() => prisma.$disconnect());
+main().catch(console.error);

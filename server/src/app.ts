@@ -1,8 +1,7 @@
 import express from "express";
 import cors from "cors";
-import session from "express-session";
-import { PrismaSessionStore } from "@quixo3/prisma-session-store";
-import prisma from "./lib/prisma";
+import { toNodeHandler } from "better-auth/node";
+import { auth } from "./lib/auth";
 
 const app = express();
 
@@ -13,24 +12,9 @@ app.use(
   })
 );
 
-app.use(express.json());
+app.all("/api/auth/*", toNodeHandler(auth));
 
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || "dev-secret-change-in-production",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    },
-    store: new PrismaSessionStore(prisma, {
-      checkPeriod: 2 * 60 * 1000,
-      dbRecordIdIsSessionId: true,
-    }),
-  })
-);
+app.use(express.json());
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
