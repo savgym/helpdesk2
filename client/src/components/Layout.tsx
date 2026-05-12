@@ -14,7 +14,7 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <nav className="bg-gray-900 px-6 py-3 flex items-center justify-between">
+      <nav className="bg-blue-600 px-6 py-3 flex items-center justify-between">
         <span className="font-bold text-white">Helpdesk</span>
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-300">{user.name}</span>
