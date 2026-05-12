@@ -12,7 +12,12 @@ app.use(
   })
 );
 
-app.all("/api/auth/*", toNodeHandler(auth));
+app.all("/api/auth/*", (req, res, next) => {
+  toNodeHandler(auth)(req, res).catch((err: unknown) => {
+    console.error("[Better Auth Error]", err);
+    next(err);
+  });
+});
 
 app.use(express.json());
 

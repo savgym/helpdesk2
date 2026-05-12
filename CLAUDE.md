@@ -33,7 +33,7 @@ First-time setup:
 ```bash
 cd server
 bunx prisma migrate dev --name init
-bun src/prisma/seed.ts   # creates admin@example.com / REDACTED
+bun src/prisma/seed.ts   # creates admin user using ADMIN_EMAIL / ADMIN_PASSWORD from server/.env
 ```
 
 ## Key conventions
