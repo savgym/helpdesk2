@@ -14,13 +14,13 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <nav className="bg-blue-600 px-6 py-3 flex items-center justify-between">
-        <span className="font-bold text-white">Helpdesk</span>
+      <nav className="bg-white border-b px-6 py-3 flex items-center justify-between">
+        <span className="font-bold text-foreground">Helpdesk</span>
         <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-300">{user.name}</span>
+          <span className="text-sm text-muted-foreground">{user.name}</span>
           <button
             onClick={handleSignOut}
-            className="text-sm text-white border border-white px-3 py-1 rounded hover:bg-white hover:text-gray-900 transition-colors"
+            className="text-sm text-foreground border px-3 py-1 rounded hover:bg-muted transition-colors"
           >
             Sign out
           </button>

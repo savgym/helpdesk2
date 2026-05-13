@@ -10,7 +10,7 @@ See `project-scope.md` for full requirements and `implementation-plan.md` for th
 
 ```
 helpDesk/
-├── client/          # React + TypeScript + Vite + Tailwind + React Router
+├── client/          # React + TypeScript + Vite + Tailwind CSS v4 + shadcn/ui + React Router
 ├── server/          # Node.js + Express + TypeScript + Prisma
 ├── docker-compose.yml
 └── implementation-plan.md
@@ -41,14 +41,32 @@ bun src/prisma/seed.ts   # creates admin user using ADMIN_EMAIL / ADMIN_PASSWORD
 - All API routes are prefixed with `/api` (e.g. `/api/health`, `/api/tickets`)
 - The Vite dev server proxies `/api/*` to `http://localhost:3000` without path rewriting
 - Client API calls go through `client/src/lib/api.ts` — use `api.get / post / patch / delete`
-- Auth uses database-backed sessions via `@quixo3/prisma-session-store`
 - Bun is the runtime and package manager for both `client` and `server`
+
+## Authentication
+
+Auth is handled by **Better Auth** (`better-auth` package).
+
+### Server
+- Config: `server/src/lib/auth.ts` — Prisma adapter (PostgreSQL), email/password enabled, **sign-up disabled** (agents are created via seed/admin only)
+- All Better Auth routes are mounted at `/api/auth/*` via `toNodeHandler(auth)` in `app.ts`
+- The `User` model has an additional `role` field (`ADMIN | AGENT`), set server-side only (`input: false`)
+- Required env vars: `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `CLIENT_URL`, `TRUSTED_ORIGINS`
+
+### Client
+- `AuthContext` (`client/src/context/AuthContext.tsx`) — wraps the app, exposes `user`, `isLoading`, `login`, `logout`
+- Session is checked on mount via `GET /api/auth/session` (returns `{ user, session }` or `null` when unauthenticated — never a 401)
+- `login(email, password)` → `POST /api/auth/sign-in/email`
+- `logout()` → `POST /api/auth/sign-out`
+- All `fetch` calls use `credentials: "include"` (cookie-based sessions)
+- `ProtectedRoute` (`client/src/components/ProtectedRoute.tsx`) — redirects to `/login` if no user; shows a loading state while session resolves
+- `useAuth()` hook — throws if used outside `AuthProvider`
 
 ## Tech stack
 
 | Layer | Choice |
 |---|---|
-| Frontend | React 18, TypeScript, Vite, Tailwind CSS, React Router v6 |
+| Frontend | React 18, TypeScript, Vite, Tailwind CSS v4, shadcn/ui, React Router v6 |
 | Backend | Node.js, Express 4, TypeScript |
 | Database | PostgreSQL 16 (Docker) |
 | ORM | Prisma 6 |
