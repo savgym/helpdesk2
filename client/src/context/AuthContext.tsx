@@ -15,16 +15,6 @@ interface AuthUser {
 
 interface SessionResponse {
   user: AuthUser;
-  session: {
-    id: string;
-    userId: string;
-    token: string;
-    expiresAt: string;
-    ipAddress: string | null;
-    userAgent: string | null;
-    createdAt: string;
-    updatedAt: string;
-  };
 }
 
 interface AuthContextValue {
