@@ -30,6 +30,7 @@ cd client && bun dev
 ```
 
 First-time setup:
+
 ```bash
 cd server
 bunx prisma migrate dev --name init
@@ -48,31 +49,49 @@ bun src/prisma/seed.ts   # creates admin user using ADMIN_EMAIL / ADMIN_PASSWORD
 Auth is handled by **Better Auth** (`better-auth` package).
 
 ### Server
+
 - Config: `server/src/lib/auth.ts` — Prisma adapter (PostgreSQL), email/password enabled, **sign-up disabled** (agents are created via seed/admin only)
 - All Better Auth routes are mounted at `/api/auth/*` via `toNodeHandler(auth)` in `app.ts`
 - The `User` model has an additional `role` field (`ADMIN | AGENT`), set server-side only (`input: false`)
 - Required env vars: `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `CLIENT_URL`, `TRUSTED_ORIGINS`
 
 ### Client
+
 - `AuthContext` (`client/src/context/AuthContext.tsx`) — wraps the app, exposes `user`, `isLoading`, `login`, `logout`
 - Session is checked on mount via `GET /api/auth/session` (returns `{ user, session }` or `null` when unauthenticated — never a 401)
 - `login(email, password)` → `POST /api/auth/sign-in/email`
 - `logout()` → `POST /api/auth/sign-out`
 - All `fetch` calls use `credentials: "include"` (cookie-based sessions)
 - `ProtectedRoute` (`client/src/components/ProtectedRoute.tsx`) — redirects to `/login` if no user; shows a loading state while session resolves
+- `AdminRoute` (`client/src/components/AdminRoute.tsx`) — nested inside `ProtectedRoute`; redirects non-admins to `/dashboard`
 - `useAuth()` hook — throws if used outside `AuthProvider`
+
+### Creating new users
+
+Sign-up is disabled in the production auth config. To create a new user, run a one-off Bun script using the `seedAuth` pattern from `server/src/prisma/seed.ts` (a separate `betterAuth` instance without `disableSignUp`), then update `role` via Prisma if needed.
+
+## Client routing
+
+| Path           | Guard          | Page             |
+| -------------- | -------------- | ---------------- |
+| `/dashboard`   | ProtectedRoute | DashboardPage    |
+| `/tickets`     | ProtectedRoute | TicketsPage      |
+| `/tickets/:id` | ProtectedRoute | TicketDetailPage |
+| `/users`       | AdminRoute     | UsersPage        |
+
+The navbar (`Layout.tsx`) renders the Users link only when `user.role === "ADMIN"`.
 
 ## Tech stack
 
-| Layer | Choice |
-|---|---|
+| Layer    | Choice                                                                  |
+| -------- | ----------------------------------------------------------------------- |
 | Frontend | React 18, TypeScript, Vite, Tailwind CSS v4, shadcn/ui, React Router v6 |
-| Backend | Node.js, Express 4, TypeScript |
-| Database | PostgreSQL 16 (Docker) |
-| ORM | Prisma 6 |
-| AI | Claude API (Anthropic) |
-| Email | SendGrid or Mailgun (inbound webhook + outbound) |
-| Runtime | Bun |
+| Backend  | Node.js, Express 4, TypeScript                                          |
+| Database | PostgreSQL 16 (Docker)                                                  |
+| ORM      | Prisma 6                                                                |
+| AI       | Claude API (Anthropic)                                                  |
+| Email    | SendGrid or Mailgun (inbound webhook + outbound)                        |
+| Runtime  | Bun                                                                     |
 
 ## Database models
 
