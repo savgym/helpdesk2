@@ -11,7 +11,11 @@ See `project-scope.md` for full requirements and `implementation-plan.md` for th
 ```
 helpDesk/
 ├── client/          # React + TypeScript + Vite + Tailwind CSS v4 + shadcn/ui + React Router
+│   ├── e2e/         # Playwright E2E tests and global setup
+│   ├── playwright.config.ts
+│   └── vite.config.e2e.ts   # E2E vite config (port 5174, proxies to :3001)
 ├── server/          # Node.js + Express + TypeScript + Prisma
+│   └── src/middleware/requireAuth.ts  # requireAuth / requireAdmin middleware
 ├── docker-compose.yml
 └── implementation-plan.md
 ```
@@ -33,9 +37,31 @@ First-time setup:
 
 ```bash
 cd server
-bunx prisma migrate dev --name init
+bunx prisma migrate deploy
 bun src/prisma/seed.ts   # creates admin user using ADMIN_EMAIL / ADMIN_PASSWORD from server/.env
 ```
+
+## E2E testing (Playwright)
+
+Tests run against a separate `helpdesk_test` database on isolated ports to avoid conflicts with dev servers.
+
+| Service | Dev | E2E |
+|---------|-----|-----|
+| Express | :3000 | :3001 |
+| Vite | :5173 | :5174 |
+
+```bash
+cd client
+bun test:e2e       # headless
+bun test:e2e:ui    # Playwright UI mode
+```
+
+`global-setup.ts` runs automatically before tests and:
+1. Creates `helpdesk_test` DB if it doesn't exist
+2. Runs `prisma migrate deploy` against it
+3. Seeds the test admin user (idempotent)
+
+Test env config lives in `server/.env.test` (gitignored). Test admin: `admin@helpdesk.test` / see `.env.test`.
 
 ## Key conventions
 
@@ -43,6 +69,7 @@ bun src/prisma/seed.ts   # creates admin user using ADMIN_EMAIL / ADMIN_PASSWORD
 - The Vite dev server proxies `/api/*` to `http://localhost:3000` without path rewriting
 - Client API calls go through `client/src/lib/api.ts` — use `api.get / post / patch / delete`
 - Bun is the runtime and package manager for both `client` and `server`
+- **All API routes must use `requireAuth` middleware server-side** — client-side guards alone are not sufficient
 
 ## Authentication
 
@@ -53,12 +80,26 @@ Auth is handled by **Better Auth** (`better-auth` package).
 - Config: `server/src/lib/auth.ts` — Prisma adapter (PostgreSQL), email/password enabled, **sign-up disabled** (agents are created via seed/admin only)
 - All Better Auth routes are mounted at `/api/auth/*` via `toNodeHandler(auth)` in `app.ts`
 - The `User` model has an additional `role` field (`ADMIN | AGENT`), set server-side only (`input: false`)
-- Required env vars: `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `CLIENT_URL`, `TRUSTED_ORIGINS`
+- Required env vars: `BETTER_AUTH_SECRET` (min 32 chars — server won't start without it), `BETTER_AUTH_URL`, `CLIENT_URL`, `TRUSTED_ORIGINS`
+- Security middleware in `app.ts`: `helmet()`, `express.json({ limit: "50kb" })`, global error handler, rate limiting on `/api/auth/sign-in` (production only)
+
+### Server-side route protection
+
+`server/src/middleware/requireAuth.ts` exports two middleware functions. Apply to every API route:
+
+```typescript
+import { requireAuth, requireAdmin } from "../middleware/requireAuth";
+
+router.get("/tickets", requireAuth, handler);          // any logged-in user
+router.get("/users", requireAuth, requireAdmin, handler); // admin only
+```
+
+`requireAuth` sets `res.locals.session`. `requireAdmin` reuses it when chained.
 
 ### Client
 
 - `AuthContext` (`client/src/context/AuthContext.tsx`) — wraps the app, exposes `user`, `isLoading`, `login`, `logout`
-- Session is checked on mount via `GET /api/auth/session` (returns `{ user, session }` or `null` when unauthenticated — never a 401)
+- Session is checked on mount via `GET /api/auth/session` (returns `{ user }` or `null` when unauthenticated — never a 401)
 - `login(email, password)` → `POST /api/auth/sign-in/email`
 - `logout()` → `POST /api/auth/sign-out`
 - All `fetch` calls use `credentials: "include"` (cookie-based sessions)
@@ -86,19 +127,22 @@ The navbar (`Layout.tsx`) renders the Users link only when `user.role === "ADMIN
 | Layer    | Choice                                                                  |
 | -------- | ----------------------------------------------------------------------- |
 | Frontend | React 18, TypeScript, Vite, Tailwind CSS v4, shadcn/ui, React Router v6 |
-| Backend  | Node.js, Express 4, TypeScript                                          |
+| Backend  | Node.js, Express 4, TypeScript, Helmet, express-rate-limit              |
 | Database | PostgreSQL 16 (Docker)                                                  |
 | ORM      | Prisma 6                                                                |
 | AI       | Claude API (Anthropic)                                                  |
 | Email    | SendGrid or Mailgun (inbound webhook + outbound)                        |
 | Runtime  | Bun                                                                     |
+| Testing  | Playwright (E2E)                                                        |
 
 ## Database models
 
-- `User` — id, name, email, passwordHash, role (ADMIN | AGENT)
+- `User` — id, name, email, emailVerified, image, role (ADMIN | AGENT)
+- `Account` — Better Auth account model (stores hashed password via scrypt)
+- `Session` — Better Auth session model (token-based, httpOnly cookie)
+- `Verification` — Better Auth verification tokens
 - `Ticket` — id, subject, body, status (OPEN | RESOLVED | CLOSED), category (GENERAL_QUESTION | TECHNICAL_QUESTION | REFUND_REQUEST), senderEmail, assignedToId
 - `Message` — id, ticketId, body, senderType (CUSTOMER | AGENT)
-- `Session` — Prisma session store for express-session
 
 ## Using context7 for documentation
 
@@ -111,4 +155,4 @@ Before writing code that uses a library, resolve its ID and fetch relevant docs:
 2. mcp__context7__query-docs          →  fetch the relevant section
 ```
 
-Libraries to always look up via context7: React, React Router, Vite, Tailwind CSS, Prisma, Express, express-session, Bun, Anthropic SDK, SendGrid, Mailgun.
+Libraries to always look up via context7: React, React Router, Vite, Tailwind CSS, Prisma, Express, Bun, Anthropic SDK, SendGrid, Mailgun, Playwright.

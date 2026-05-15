@@ -12,15 +12,16 @@ app.use(helmet());
 const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173").split(",");
 app.use(cors({ origin: allowedOrigins, credentials: true }));
 
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: "Too many login attempts, please try again later" },
-});
-
-app.use("/api/auth/sign-in", loginLimiter);
+if (process.env.NODE_ENV === "production") {
+  const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many login attempts, please try again later" },
+  });
+  app.use("/api/auth/sign-in", loginLimiter);
+}
 
 app.all("/api/auth/*", (req, res, next) => {
   toNodeHandler(auth)(req, res).catch((err: unknown) => {
