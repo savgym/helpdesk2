@@ -43,12 +43,7 @@ bun src/prisma/seed.ts   # creates admin user using ADMIN_EMAIL / ADMIN_PASSWORD
 
 ## E2E testing (Playwright)
 
-Tests run against a separate `helpdesk_test` database on isolated ports to avoid conflicts with dev servers.
-
-| Service | Dev | E2E |
-|---------|-----|-----|
-| Express | :3000 | :3001 |
-| Vite | :5173 | :5174 |
+See the `playwright-e2e-writer` agent (`client/.claude/agents/playwright-e2e-writer.md`) for the full setup, ports, credentials, and test-writing guidelines.
 
 ```bash
 cd client
@@ -56,12 +51,12 @@ bun test:e2e       # headless
 bun test:e2e:ui    # Playwright UI mode
 ```
 
-`global-setup.ts` runs automatically before tests and:
-1. Creates `helpdesk_test` DB if it doesn't exist
-2. Runs `prisma migrate deploy` against it
-3. Seeds the test admin user (idempotent)
+**Always use the `playwright-e2e-writer` agent to write E2E tests** — do not write Playwright tests inline. Invoke it:
+- After implementing any new page or significant feature
+- When the user explicitly asks for tests
+- After auth or routing changes that affect protected flows
 
-Test env config lives in `server/.env.test` (gitignored). Test admin: `admin@helpdesk.test` / see `.env.test`.
+The agent knows the correct ports, test database, credentials, auth fixture pattern, and file naming conventions for this project.
 
 ## Key conventions
 
