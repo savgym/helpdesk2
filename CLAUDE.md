@@ -62,9 +62,18 @@ The agent knows the correct ports, test database, credentials, auth fixture patt
 
 - All API routes are prefixed with `/api` (e.g. `/api/health`, `/api/tickets`)
 - The Vite dev server proxies `/api/*` to `http://localhost:3000` without path rewriting
-- Client API calls go through `client/src/lib/api.ts` — use `api.get / post / patch / delete`
+- Client API calls go through `client/src/lib/api.ts` — use `api.get / post / patch / delete` (axios-based, `withCredentials: true`)
 - Bun is the runtime and package manager for both `client` and `server`
 - **All API routes must use `requireAuth` middleware server-side** — client-side guards alone are not sufficient
+
+## Data fetching (client)
+
+- **Always use TanStack Query** (`@tanstack/react-query`) for server state — never `useEffect` + `useState` for fetching
+- `useQuery` for reads; `useMutation` for writes (POST / PATCH / DELETE)
+- Update the cache directly in `onSuccess` via `queryClient.setQueryData` — avoid unnecessary refetches
+- `QueryClientProvider` is set up in `client/src/main.tsx`
+- **Never use `fetch` directly** — always go through the axios wrapper in `client/src/lib/api.ts`
+- Add TanStack Query and Axios to context7 lookups when working with either library
 
 ## Authentication
 
@@ -97,7 +106,7 @@ router.get("/users", requireAuth, requireAdmin, handler); // admin only
 - Session is checked on mount via `GET /api/auth/get-session` (returns `{ user }` or `null` when unauthenticated — never a 401)
 - `login(email, password)` → `POST /api/auth/sign-in/email`
 - `logout()` → `POST /api/auth/sign-out`
-- All `fetch` calls use `credentials: "include"` (cookie-based sessions)
+- All HTTP calls go through the axios instance in `client/src/lib/api.ts` — **never use `fetch` directly**
 - `ProtectedRoute` (`client/src/components/ProtectedRoute.tsx`) — redirects to `/login` if no user; shows a loading state while session resolves
 - `AdminRoute` (`client/src/components/AdminRoute.tsx`) — nested inside `ProtectedRoute`; redirects non-admins to `/dashboard`
 - `useAuth()` hook — throws if used outside `AuthProvider`
@@ -121,7 +130,7 @@ The navbar (`Layout.tsx`) renders the Users link only when `user.role === "ADMIN
 
 | Layer    | Choice                                                                  |
 | -------- | ----------------------------------------------------------------------- |
-| Frontend | React 18, TypeScript, Vite, Tailwind CSS v4, shadcn/ui, React Router v6 |
+| Frontend | React 18, TypeScript, Vite, Tailwind CSS v4, shadcn/ui, React Router v6, TanStack Query v5, Axios |
 | Backend  | Node.js, Express 4, TypeScript, Helmet, express-rate-limit              |
 | Database | PostgreSQL 16 (Docker)                                                  |
 | ORM      | Prisma 6                                                                |
@@ -150,4 +159,4 @@ Before writing code that uses a library, resolve its ID and fetch relevant docs:
 2. mcp__context7__query-docs          →  fetch the relevant section
 ```
 
-Libraries to always look up via context7: React, React Router, Vite, Tailwind CSS, Prisma, Express, Bun, Anthropic SDK, SendGrid, Mailgun, Playwright.
+Libraries to always look up via context7: React, React Router, Vite, Tailwind CSS, Prisma, Express, Bun, Anthropic SDK, SendGrid, Mailgun, Playwright, TanStack Query, Axios.

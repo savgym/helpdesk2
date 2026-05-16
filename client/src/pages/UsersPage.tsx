@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { Badge } from "../components/ui/badge";
@@ -42,43 +42,37 @@ interface User {
 
 export default function UsersPage() {
   const { user: currentUser } = useAuth();
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    api
-      .get<User[]>("/users")
-      .then(setUsers)
-      .catch((err: Error) => setError(err.message))
-      .finally(() => setIsLoading(false));
-  }, []);
+  const {
+    data: users = [],
+    isLoading,
+    error,
+  } = useQuery<User[], Error>({
+    queryKey: ["users"],
+    queryFn: () => api.get<User[]>("/users"),
+  });
 
-  async function handleRoleChange(userId: string, role: Role) {
-    setUpdatingId(userId);
-    try {
-      const updated = await api.patch<User>(`/users/${userId}/role`, { role });
-      setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to update role");
-    } finally {
-      setUpdatingId(null);
-    }
-  }
+  const updateRole = useMutation({
+    mutationFn: ({ id, role }: { id: string; role: Role }) =>
+      api.patch<User>(`/users/${id}/role`, { role }),
+    onSuccess: (updated) => {
+      queryClient.setQueryData<User[]>(["users"], (prev = []) =>
+        prev.map((u) => (u.id === updated.id ? updated : u))
+      );
+    },
+  });
 
-  async function handleDelete(userId: string) {
-    setDeletingId(userId);
-    try {
-      await api.delete<void>(`/users/${userId}`);
-      setUsers((prev) => prev.filter((u) => u.id !== userId));
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to delete user");
-    } finally {
-      setDeletingId(null);
-    }
-  }
+  const deleteUser = useMutation({
+    mutationFn: (id: string) => api.delete<void>(`/users/${id}`),
+    onSuccess: (_data, id) => {
+      queryClient.setQueryData<User[]>(["users"], (prev = []) =>
+        prev.filter((u) => u.id !== id)
+      );
+    },
+  });
+
+  const mutationError = updateRole.error?.message ?? deleteUser.error?.message;
 
   return (
     <div className="space-y-6">
@@ -89,9 +83,9 @@ export default function UsersPage() {
         </p>
       </div>
 
-      {error && (
+      {(error || mutationError) && (
         <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md px-4 py-3">
-          {error}
+          {error?.message ?? mutationError}
         </div>
       )}
 
@@ -106,7 +100,7 @@ export default function UsersPage() {
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Joined</TableHead>
-                <TableHead className="w-[80px]" />
+                <TableHead className="w-20" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -146,9 +140,12 @@ export default function UsersPage() {
                         <Select
                           value={u.role}
                           onValueChange={(value) =>
-                            handleRoleChange(u.id, value as Role)
+                            updateRole.mutate({ id: u.id, role: value as Role })
                           }
-                          disabled={updatingId === u.id}
+                          disabled={
+                            updateRole.isPending &&
+                            updateRole.variables?.id === u.id
+                          }
                         >
                           <SelectTrigger className="w-28 h-8 text-xs">
                             <SelectValue />
@@ -171,9 +168,15 @@ export default function UsersPage() {
                               variant="ghost"
                               size="sm"
                               className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                              disabled={deletingId === u.id}
+                              disabled={
+                                deleteUser.isPending &&
+                                deleteUser.variables === u.id
+                              }
                             >
-                              {deletingId === u.id ? "Deleting…" : "Delete"}
+                              {deleteUser.isPending &&
+                              deleteUser.variables === u.id
+                                ? "Deleting…"
+                                : "Delete"}
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
@@ -190,7 +193,7 @@ export default function UsersPage() {
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
                               <AlertDialogAction
                                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                onClick={() => handleDelete(u.id)}
+                                onClick={() => deleteUser.mutate(u.id)}
                               >
                                 Delete
                               </AlertDialogAction>

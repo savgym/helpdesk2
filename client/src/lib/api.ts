@@ -1,25 +1,27 @@
-const BASE_URL = "/api";
+import axios from "axios";
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
+const client = axios.create({
+  baseURL: "/api",
+  withCredentials: true,
+  headers: { "Content-Type": "application/json" },
+});
 
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.message || error.error || "Request failed");
+client.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    const message =
+      err.response?.data?.message ||
+      err.response?.data?.error ||
+      "Request failed";
+    return Promise.reject(new Error(message));
   }
-
-  return res.json();
-}
+);
 
 export const api = {
-  get: <T>(path: string) => request<T>(path),
+  get: <T>(path: string) => client.get<T>(path).then((r) => r.data),
   post: <T>(path: string, body: unknown) =>
-    request<T>(path, { method: "POST", body: JSON.stringify(body) }),
+    client.post<T>(path, body).then((r) => r.data),
   patch: <T>(path: string, body: unknown) =>
-    request<T>(path, { method: "PATCH", body: JSON.stringify(body) }),
-  delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
+    client.patch<T>(path, body).then((r) => r.data),
+  delete: <T>(path: string) => client.delete<T>(path).then((r) => r.data),
 };
