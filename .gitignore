@@ -6,5 +6,5 @@ dist/
 client/.mcp.json
 .claude/settings.local.json
 server/.env.test
-client/playwright-report/
-client/test-results/
+client/e2e/playwright-report/
+client/e2e/test-results/

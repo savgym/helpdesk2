@@ -24,11 +24,12 @@ const testEnv = loadEnvFile(path.resolve(__dirname, "../server/.env.test"));
 
 export default defineConfig({
   testDir: "./e2e",
+  outputDir: "./e2e/test-results",
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: 1,
-  reporter: [["html", { open: "never" }]],
+  reporter: [["html", { open: "never", outputFolder: "./e2e/playwright-report" }]],
   globalSetup: "./e2e/global-setup.ts",
   use: {
     baseURL: "http://localhost:5174",

@@ -94,7 +94,7 @@ router.get("/users", requireAuth, requireAdmin, handler); // admin only
 ### Client
 
 - `AuthContext` (`client/src/context/AuthContext.tsx`) — wraps the app, exposes `user`, `isLoading`, `login`, `logout`
-- Session is checked on mount via `GET /api/auth/session` (returns `{ user }` or `null` when unauthenticated — never a 401)
+- Session is checked on mount via `GET /api/auth/get-session` (returns `{ user }` or `null` when unauthenticated — never a 401)
 - `login(email, password)` → `POST /api/auth/sign-in/email`
 - `logout()` → `POST /api/auth/sign-out`
 - All `fetch` calls use `credentials: "include"` (cookie-based sessions)

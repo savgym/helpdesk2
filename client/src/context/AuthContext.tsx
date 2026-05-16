@@ -33,7 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Better Auth returns HTTP 200 with JSON null when unauthenticated
     api
-      .get<SessionResponse | null>("/auth/session")
+      .get<SessionResponse | null>("/auth/get-session")
       .then((data) => setUser(data?.user ?? null))
       .catch(() => setUser(null))
       .finally(() => setIsLoading(false));
