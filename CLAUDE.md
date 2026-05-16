@@ -41,6 +41,27 @@ bunx prisma migrate deploy
 bun src/prisma/seed.ts   # creates admin user using ADMIN_EMAIL / ADMIN_PASSWORD from server/.env
 ```
 
+## Component testing (Vitest + React Testing Library)
+
+```bash
+cd client
+bun test          # run all component tests once
+bun test:ui       # open Vitest browser UI (best for writing tests)
+```
+
+### Setup
+- Config: `client/vitest.config.ts` — jsdom environment, `src/test/setup.ts` as setup file, e2e files excluded
+- Setup file (`src/test/setup.ts`) — imports `@testing-library/jest-dom` matchers and stubs `ResizeObserver`, `matchMedia`, and pointer-capture APIs required by Radix UI primitives
+- Test files live next to the component they test: `src/pages/UsersPage.test.tsx`
+
+### Conventions
+- Use `renderWithQuery` from `src/test/renderWithQuery.tsx` instead of bare `render` — it wraps the component in a fresh `QueryClientProvider` with `retry: false`
+- Mock `../lib/api` with `vi.mock` — never make real HTTP calls in component tests
+- Mock `../context/AuthContext` with `vi.mock` to control the current user
+- Radix UI primitives (Select, etc.) do not work in jsdom — mock the shadcn component with a native HTML equivalent (e.g. `<select>`) so interactions work reliably
+- User fixtures must include all `AuthUser` fields: `id`, `name`, `email`, `role`, `emailVerified`, `image`, `createdAt`, `updatedAt`
+- Use `userEvent.setup()` for all interactions; prefer `findBy*` queries for async state
+
 ## E2E testing (Playwright)
 
 See the `playwright-e2e-writer` agent (`client/.claude/agents/playwright-e2e-writer.md`) for the full setup, ports, credentials, and test-writing guidelines.
