@@ -4,6 +4,7 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "./lib/auth";
+import usersRouter from "./routes/users";
 
 const app = express();
 
@@ -35,6 +36,8 @@ app.use(express.json({ limit: "50kb" }));
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
 });
+
+app.use("/api/users", usersRouter);
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
