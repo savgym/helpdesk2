@@ -32,6 +32,7 @@ export function CreateUserDialog() {
     register,
     handleSubmit,
     reset,
+    setError,
     formState: { errors },
   } = useForm<CreateUserInput>({ resolver: zodResolver(createUserSchema) });
 
@@ -43,6 +44,11 @@ export function CreateUserDialog() {
         created,
       ]);
       close();
+    },
+    onError: (error) => {
+      if (error.message.toLowerCase().includes("email")) {
+        setError("email", { message: error.message });
+      }
     },
   });
 
@@ -72,14 +78,14 @@ export function CreateUserDialog() {
           </DialogHeader>
           <form onSubmit={handleSubmit((data) => mutation.mutate(data))} noValidate>
             <div className="space-y-4 py-2">
-              {mutation.error && (
+              {mutation.error && !errors.email && (
                 <p className="text-sm text-destructive">
                   {mutation.error.message}
                 </p>
               )}
               <div className="space-y-1">
                 <Label htmlFor="new-name">Name</Label>
-                <Input id="new-name" {...register("name")} />
+                <Input id="new-name" aria-invalid={!!errors.name} {...register("name")} />
                 {errors.name && (
                   <p className="text-xs text-destructive">
                     {errors.name.message}
@@ -92,6 +98,7 @@ export function CreateUserDialog() {
                   id="new-email"
                   type="email"
                   autoComplete="off"
+                  aria-invalid={!!errors.email}
                   {...register("email")}
                 />
                 {errors.email && (
@@ -106,6 +113,7 @@ export function CreateUserDialog() {
                   id="new-password"
                   type="password"
                   autoComplete="new-password"
+                  aria-invalid={!!errors.password}
                   {...register("password")}
                 />
                 {errors.password && (

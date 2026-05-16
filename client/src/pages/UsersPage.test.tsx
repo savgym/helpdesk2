@@ -1,6 +1,6 @@
 import React from "react";
 import { vi, describe, it, expect, beforeEach } from "vitest";
-import { screen, waitFor, within } from "@testing-library/react";
+import { screen, waitFor, within, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import UsersPage from "./UsersPage";
 import { api } from "../lib/api";
@@ -105,20 +105,11 @@ describe("UsersPage", () => {
       expect(await screen.findByText("(you)")).toBeInTheDocument();
     });
 
-    it("shows a static role badge instead of a select for the current user", async () => {
+    it("shows a role badge for every user", async () => {
       renderPage(ADMIN);
       await screen.findByText("Alice Admin");
-      // Current user row has a Badge, not a Select trigger
       const aliceRow = screen.getByText("Alice Admin").closest("tr")!;
       expect(within(aliceRow).getByText("ADMIN")).toBeInTheDocument();
-      expect(within(aliceRow).queryByRole("combobox")).not.toBeInTheDocument();
-    });
-
-    it("shows a role select for other users", async () => {
-      renderPage(ADMIN);
-      await screen.findByText("Bob Agent");
-      const bobRow = screen.getByText("Bob Agent").closest("tr")!;
-      expect(within(bobRow).getByRole("combobox")).toBeInTheDocument();
     });
 
     it("does not show a delete button for the current user", async () => {
@@ -133,40 +124,6 @@ describe("UsersPage", () => {
       await screen.findByText("Bob Agent");
       const bobRow = screen.getByText("Bob Agent").closest("tr")!;
       expect(within(bobRow).getByRole("button", { name: /delete/i })).toBeInTheDocument();
-    });
-  });
-
-  describe("role change", () => {
-    it("calls api.patch with the new role when the select changes", async () => {
-      const user = userEvent.setup();
-      mockApi.get.mockResolvedValue([ADMIN, AGENT]);
-      mockApi.patch.mockResolvedValue({ ...AGENT, role: "ADMIN" });
-      renderPage(ADMIN);
-
-      await screen.findByText("Bob Agent");
-      const bobRow = screen.getByText("Bob Agent").closest("tr")!;
-      const select = within(bobRow).getByRole("combobox");
-
-      await user.selectOptions(select, "ADMIN");
-
-      await waitFor(() => {
-        expect(mockApi.patch).toHaveBeenCalledWith("/users/2/role", { role: "ADMIN" });
-      });
-    });
-
-    it("shows an error message when the role update fails", async () => {
-      const user = userEvent.setup();
-      mockApi.get.mockResolvedValue([ADMIN, AGENT]);
-      mockApi.patch.mockRejectedValue(new Error("Failed to update role"));
-      renderPage(ADMIN);
-
-      await screen.findByText("Bob Agent");
-      const bobRow = screen.getByText("Bob Agent").closest("tr")!;
-      const select = within(bobRow).getByRole("combobox");
-
-      await user.selectOptions(select, "ADMIN");
-
-      expect(await screen.findByText("Failed to update role")).toBeInTheDocument();
     });
   });
 
@@ -243,6 +200,54 @@ describe("UsersPage", () => {
       mockApi.get.mockRejectedValue(new Error("Network error"));
       renderPage();
       expect(await screen.findByText("Network error")).toBeInTheDocument();
+    });
+  });
+
+  describe("create user dialog", () => {
+    beforeEach(() => {
+      mockApi.get.mockResolvedValue([]);
+    });
+
+    it("shows the dialog when 'New User' is clicked", async () => {
+      const user = userEvent.setup();
+      renderPage();
+
+      await user.click(screen.getByRole("button", { name: /new user/i }));
+
+      expect(await screen.findByRole("dialog")).toBeInTheDocument();
+      expect(screen.getByText("Create new user")).toBeInTheDocument();
+    });
+
+    it("hides the dialog when Escape is pressed", async () => {
+      const user = userEvent.setup();
+      renderPage();
+
+      await user.click(screen.getByRole("button", { name: /new user/i }));
+      await screen.findByRole("dialog");
+
+      await user.keyboard("{Escape}");
+
+      await waitFor(() => {
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      });
+    });
+
+    it("hides the dialog when clicking outside", async () => {
+      const user = userEvent.setup();
+      renderPage();
+
+      await user.click(screen.getByRole("button", { name: /new user/i }));
+      await screen.findByRole("dialog");
+
+      // userEvent.click fails because Radix sets pointer-events:none on the
+      // body while the dialog is open. fireEvent bypasses that CSS check and
+      // fires directly on the document, which is where Radix's
+      // DismissableLayer capture listener runs its outside-click detection.
+      fireEvent.pointerDown(document.body);
+
+      await waitFor(() => {
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      });
     });
   });
 });

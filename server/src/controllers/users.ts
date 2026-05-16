@@ -39,9 +39,16 @@ export async function createUser(req: Request, res: Response) {
   }
 
   const { name, email, password } = result.data;
-  await authAdmin.api.signUpEmail({ body: { name, email, password } });
+  const normalizedEmail = email.toLowerCase();
+
+  const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+  if (existing) {
+    return res.status(409).json({ error: "A user with that email already exists" });
+  }
+
+  await authAdmin.api.signUpEmail({ body: { name, email: normalizedEmail, password } });
   const user = await prisma.user.findUniqueOrThrow({
-    where: { email: email.toLowerCase() },
+    where: { email: normalizedEmail },
     select: USER_SELECT,
   });
   res.status(201).json(user);
