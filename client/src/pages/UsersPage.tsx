@@ -29,6 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "../components/ui/table";
+import { Skeleton } from "../components/ui/skeleton";
 
 type Role = "ADMIN" | "AGENT";
 
@@ -90,7 +91,30 @@ export default function UsersPage() {
       )}
 
       {isLoading ? (
-        <div className="text-sm text-muted-foreground">Loading users…</div>
+        <div className="rounded-md border bg-white">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Joined</TableHead>
+                <TableHead className="w-20" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                  <TableCell><Skeleton className="h-7 w-24 rounded-md" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell />
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       ) : (
         <div className="rounded-md border bg-white">
           <Table>
