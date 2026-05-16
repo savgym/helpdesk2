@@ -109,89 +109,16 @@ describe("UsersPage", () => {
       renderPage(ADMIN);
       await screen.findByText("Alice Admin");
       const aliceRow = screen.getByText("Alice Admin").closest("tr")!;
-      expect(within(aliceRow).getByText("ADMIN")).toBeInTheDocument();
+      expect(within(aliceRow).getByText("admin")).toBeInTheDocument();
     });
 
-    it("does not show a delete button for the current user", async () => {
+    it("shows an edit button for every row including the current user", async () => {
       renderPage(ADMIN);
       await screen.findByText("Alice Admin");
       const aliceRow = screen.getByText("Alice Admin").closest("tr")!;
-      expect(within(aliceRow).queryByRole("button")).not.toBeInTheDocument();
-    });
-
-    it("shows a delete button for other users", async () => {
-      renderPage(ADMIN);
-      await screen.findByText("Bob Agent");
+      expect(within(aliceRow).getByRole("button", { name: /edit/i })).toBeInTheDocument();
       const bobRow = screen.getByText("Bob Agent").closest("tr")!;
-      expect(within(bobRow).getByRole("button", { name: /delete/i })).toBeInTheDocument();
-    });
-  });
-
-  describe("delete user", () => {
-    beforeEach(() => {
-      mockApi.get.mockResolvedValue([ADMIN, AGENT]);
-    });
-
-    it("opens a confirmation dialog when delete is clicked", async () => {
-      const user = userEvent.setup();
-      renderPage(ADMIN);
-
-      await screen.findByText("Bob Agent");
-      const bobRow = screen.getByText("Bob Agent").closest("tr")!;
-      await user.click(within(bobRow).getByRole("button", { name: /delete/i }));
-
-      expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
-      expect(screen.getByText(/permanently delete/i)).toBeInTheDocument();
-      expect(screen.getByText("Bob Agent", { selector: "strong" })).toBeInTheDocument();
-    });
-
-    it("calls api.delete and removes the user when confirmed", async () => {
-      const user = userEvent.setup();
-      mockApi.delete.mockResolvedValue(undefined);
-      renderPage(ADMIN);
-
-      await screen.findByText("Bob Agent");
-      const bobRow = screen.getByText("Bob Agent").closest("tr")!;
-      await user.click(within(bobRow).getByRole("button", { name: /delete/i }));
-
-      const dialog = await screen.findByRole("alertdialog");
-      await user.click(within(dialog).getByRole("button", { name: /^delete$/i }));
-
-      await waitFor(() => {
-        expect(mockApi.delete).toHaveBeenCalledWith("/users/2");
-      });
-      await waitFor(() => {
-        expect(screen.queryByText("Bob Agent")).not.toBeInTheDocument();
-      });
-    });
-
-    it("does not call api.delete when cancel is clicked", async () => {
-      const user = userEvent.setup();
-      renderPage(ADMIN);
-
-      await screen.findByText("Bob Agent");
-      const bobRow = screen.getByText("Bob Agent").closest("tr")!;
-      await user.click(within(bobRow).getByRole("button", { name: /delete/i }));
-
-      const dialog = await screen.findByRole("alertdialog");
-      await user.click(within(dialog).getByRole("button", { name: /cancel/i }));
-
-      expect(mockApi.delete).not.toHaveBeenCalled();
-    });
-
-    it("shows an error message when deletion fails", async () => {
-      const user = userEvent.setup();
-      mockApi.delete.mockRejectedValue(new Error("Failed to delete user"));
-      renderPage(ADMIN);
-
-      await screen.findByText("Bob Agent");
-      const bobRow = screen.getByText("Bob Agent").closest("tr")!;
-      await user.click(within(bobRow).getByRole("button", { name: /delete/i }));
-
-      const dialog = await screen.findByRole("alertdialog");
-      await user.click(within(dialog).getByRole("button", { name: /^delete$/i }));
-
-      expect(await screen.findByText("Failed to delete user")).toBeInTheDocument();
+      expect(within(bobRow).getByRole("button", { name: /edit/i })).toBeInTheDocument();
     });
   });
 

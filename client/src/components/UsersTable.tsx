@@ -1,19 +1,10 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { Pencil } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "./ui/alert-dialog";
 import {
   Table,
   TableBody,
@@ -23,6 +14,7 @@ import {
   TableRow,
 } from "./ui/table";
 import { Skeleton } from "./ui/skeleton";
+import { UserDialog } from "./UserDialog";
 
 interface User {
   id: string;
@@ -34,7 +26,7 @@ interface User {
 
 export function UsersTable() {
   const { user: currentUser } = useAuth();
-  const queryClient = useQueryClient();
+  const [editingUser, setEditingUser] = useState<User | null>(null);
 
   const {
     data: users = [],
@@ -45,22 +37,11 @@ export function UsersTable() {
     queryFn: () => api.get<User[]>("/users"),
   });
 
-  const deleteUser = useMutation({
-    mutationFn: (id: string) => api.delete<void>(`/users/${id}`),
-    onSuccess: (_data, id) => {
-      queryClient.setQueryData<User[]>(["users"], (prev = []) =>
-        prev.filter((u) => u.id !== id)
-      );
-    },
-  });
-
-  const errorMessage = error?.message ?? deleteUser.error?.message;
-
   return (
     <div className="space-y-4">
-      {errorMessage && (
+      {error && (
         <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md px-4 py-3">
-          {errorMessage}
+          {error.message}
         </div>
       )}
 
@@ -71,8 +52,8 @@ export function UsersTable() {
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Role</TableHead>
-              <TableHead>Joined</TableHead>
-              <TableHead className="w-20" />
+              <TableHead>Created</TableHead>
+              <TableHead className="w-16">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -117,53 +98,21 @@ export function UsersTable() {
                         <Badge
                           variant={u.role === "ADMIN" ? "default" : "secondary"}
                         >
-                          {u.role}
+                          {u.role.toLowerCase()}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">
                         {new Date(u.createdAt).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
-                        {!isSelf && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                disabled={
-                                  deleteUser.isPending &&
-                                  deleteUser.variables === u.id
-                                }
-                              >
-                                {deleteUser.isPending &&
-                                deleteUser.variables === u.id
-                                  ? "Deleting…"
-                                  : "Delete"}
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete user?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This will permanently delete{" "}
-                                  <strong>{u.name}</strong> ({u.email}) and all
-                                  their session data. This action cannot be
-                                  undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                  onClick={() => deleteUser.mutate(u.id)}
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingUser(u)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                          <span className="sr-only">Edit</span>
+                        </Button>
                       </TableCell>
                     </TableRow>
                   );
@@ -173,6 +122,13 @@ export function UsersTable() {
           </TableBody>
         </Table>
       </div>
+
+      <UserDialog
+        key={editingUser?.id}
+        user={editingUser ?? undefined}
+        open={editingUser !== null}
+        onClose={() => setEditingUser(null)}
+      />
     </div>
   );
 }

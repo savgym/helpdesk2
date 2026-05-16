@@ -9,6 +9,7 @@ router.use(requireAuth, requireAdmin);
 router.get("/", users.listUsers);
 router.post("/", users.createUser);
 router.patch("/:id/role", users.updateRole);
+router.patch("/:id", users.updateUser);
 router.delete("/:id", users.deleteUser);
 
 export default router;

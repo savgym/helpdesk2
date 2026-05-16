@@ -2,7 +2,8 @@ import type { Request, Response } from "express";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { z } from "zod";
-import { createUserSchema } from "@helpdesk/core";
+import { createUserSchema, updateUserSchema } from "@helpdesk/core";
+import { hashPassword } from "@better-auth/utils/password";
 import prisma from "../lib/prisma";
 
 const authAdmin = betterAuth({
@@ -24,6 +25,10 @@ const updateRoleSchema = z.object({
   role: z.enum(["ADMIN", "AGENT"], { message: "Invalid role" }),
 });
 
+function firstIssue(result: z.ZodSafeParseError<unknown>) {
+  return result.error.issues[0].message;
+}
+
 export async function listUsers(_req: Request, res: Response) {
   const users = await prisma.user.findMany({
     select: USER_SELECT,
@@ -35,7 +40,7 @@ export async function listUsers(_req: Request, res: Response) {
 export async function createUser(req: Request, res: Response) {
   const result = createUserSchema.safeParse(req.body);
   if (!result.success) {
-    return res.status(400).json({ error: result.error.issues[0].message });
+    return res.status(400).json({ error: firstIssue(result) });
   }
 
   const { name, email, password } = result.data;
@@ -64,7 +69,7 @@ export async function updateRole(req: Request, res: Response) {
 
   const result = updateRoleSchema.safeParse(req.body);
   if (!result.success) {
-    return res.status(400).json({ error: result.error.issues[0].message });
+    return res.status(400).json({ error: firstIssue(result) });
   }
 
   const { role } = result.data;
@@ -81,6 +86,47 @@ export async function updateRole(req: Request, res: Response) {
     data: { role },
     select: USER_SELECT,
   });
+  res.json(user);
+}
+
+export async function updateUser(req: Request, res: Response) {
+  const id = req.params.id as string;
+  const result = updateUserSchema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: firstIssue(result) });
+  }
+
+  const { name, email, password } = result.data;
+  const normalizedEmail = email.toLowerCase();
+
+  const duplicate = await prisma.user.findFirst({
+    where: { email: normalizedEmail, NOT: { id } },
+  });
+  if (duplicate) {
+    return res.status(409).json({ error: "A user with that email already exists" });
+  }
+
+  const user = await prisma.user.update({
+    where: { id },
+    data: { name, email: normalizedEmail },
+    select: USER_SELECT,
+  });
+
+  // Better Auth uses the email as accountId for the credential provider.
+  // Keep it in sync so login continues to work after an email change.
+  await prisma.account.updateMany({
+    where: { userId: id, providerId: "credential" },
+    data: { accountId: normalizedEmail },
+  });
+
+  if (password) {
+    const hashed = await hashPassword(password);
+    await prisma.account.updateMany({
+      where: { userId: id, providerId: "credential" },
+      data: { password: hashed },
+    });
+  }
+
   res.json(user);
 }
 

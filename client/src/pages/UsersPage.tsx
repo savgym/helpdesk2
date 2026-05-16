@@ -1,7 +1,12 @@
-import { CreateUserDialog } from "../components/CreateUserDialog";
+import { useState } from "react";
+import { Plus } from "lucide-react";
+import { Button } from "../components/ui/button";
+import { UserDialog } from "../components/UserDialog";
 import { UsersTable } from "../components/UsersTable";
 
 export default function UsersPage() {
+  const [createOpen, setCreateOpen] = useState(false);
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between">
@@ -11,10 +16,18 @@ export default function UsersPage() {
             Manage agent accounts and roles.
           </p>
         </div>
-        <CreateUserDialog />
+        <Button onClick={() => setCreateOpen(true)}>
+          <Plus className="mr-1 h-4 w-4" />
+          New User
+        </Button>
       </div>
 
       <UsersTable />
+
+      <UserDialog
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+      />
     </div>
   );
 }
