@@ -24,7 +24,7 @@ if (process.env.NODE_ENV === "production") {
   app.use("/api/auth/sign-in", loginLimiter);
 }
 
-app.all("/api/auth/*", (req, res, next) => {
+app.all("/api/auth/*path", (req, res, next) => {
   toNodeHandler(auth)(req, res).catch((err: unknown) => {
     console.error("[Better Auth Error]", err);
     next(err);

@@ -86,6 +86,10 @@ The agent knows the correct ports, test database, credentials, auth fixture patt
 - Client API calls go through `client/src/lib/api.ts` — use `api.get / post / patch / delete` (axios-based, `withCredentials: true`)
 - Bun is the runtime and package manager for both `client` and `server`
 - **All API routes must use `requireAuth` middleware server-side** — client-side guards alone are not sufficient
+- **Use Zod for all request body validation in server routes** — define schemas at the top of each route file, parse with `safeParse`, and return `res.status(400).json({ error: result.error.issues[0].message })` on failure. Never use manual `if (!field)` checks.
+- **Use react-hook-form + zod for all forms on the client** — define a `z.object` schema, infer the type with `z.infer`, pass `zodResolver(schema)` to `useForm`, use `register` on inputs, and display errors from `formState.errors`. Wrap the form in `<form onSubmit={handleSubmit(onSubmit)} noValidate>`. Never use manual `useState` form state or manual validation functions.
+- **Shared Zod schemas live in the `core` package** (`@helpdesk/core`) — any schema used by both client and server must be defined in `core/src/schemas/` and exported from `core/src/index.ts`. Import from `@helpdesk/core` in both client and server. Never duplicate a schema across packages.
+- **Never wrap route handlers in try/catch** — the server runs Express 5, which automatically forwards rejected promises to the global error handler. Only catch errors when you need to handle them specially (e.g. map a specific error to a 409).
 
 ## Data fetching (client)
 
