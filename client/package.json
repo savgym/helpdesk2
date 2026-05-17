@@ -8,8 +8,8 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e": "kill $(lsof -ti :3001 :5174 2>/dev/null) 2>/dev/null; playwright test",
+    "test:e2e:ui": "kill $(lsof -ti :3001 :5174 2>/dev/null) 2>/dev/null; playwright test --ui"
   },
   "dependencies": {
     "@helpdesk/core": "workspace:*",

@@ -51,4 +51,10 @@ export default async function globalSetup() {
     env: { ...process.env, ...testEnv },
     stdio: "inherit",
   });
+
+  // Delete non-admin users left over from previous runs so tests start clean
+  execSync(
+    `docker exec helpdesk-postgres-1 psql -U helpdesk -d helpdesk_test -c "DELETE FROM \\"User\\" WHERE role != 'ADMIN';"`,
+    { stdio: "pipe" }
+  );
 }

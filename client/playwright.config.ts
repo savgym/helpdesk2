@@ -40,7 +40,7 @@ export default defineConfig({
       command: "bun src/index.ts",
       cwd: path.resolve(__dirname, "../server"),
       url: "http://localhost:3001/api/health",
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       env: testEnv,
       stdout: "pipe",
       stderr: "pipe",
@@ -48,7 +48,7 @@ export default defineConfig({
     {
       command: "vite --config vite.config.e2e.ts",
       url: "http://localhost:5174",
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       stdout: "pipe",
       stderr: "pipe",
     },
