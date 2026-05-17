@@ -10,6 +10,8 @@ const listTicketsQuerySchema = z.object({
   search: z.string().optional(),
   status: z.string().optional(),
   category: z.string().optional(),
+  page: z.coerce.number().int().min(1).optional().default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).optional().default(10),
 });
 
 export async function listTickets(req: Request, res: Response) {
@@ -18,7 +20,7 @@ export async function listTickets(req: Request, res: Response) {
     return res.status(400).json({ error: result.error.issues[0].message });
   }
 
-  const { sortBy, sortOrder, search, status, category } = result.data;
+  const { sortBy, sortOrder, search, status, category, page, pageSize } = result.data;
 
   const statusValues = status
     ? status.split(",").filter((s): s is TicketStatus => ticketStatusSchema.safeParse(s).success)
@@ -55,19 +57,32 @@ export async function listTickets(req: Request, res: Response) {
     });
   }
 
-  const tickets = await prisma.ticket.findMany({
-    where: andConditions.length ? { AND: andConditions } : {},
-    orderBy: { [sortBy]: sortOrder },
-    select: {
-      id: true,
-      subject: true,
-      status: true,
-      category: true,
-      senderEmail: true,
-      senderName: true,
-      createdAt: true,
-    },
-  });
+  const where = andConditions.length ? { AND: andConditions } : {};
 
-  res.json(tickets);
+  const [tickets, total] = await prisma.$transaction([
+    prisma.ticket.findMany({
+      where,
+      orderBy: { [sortBy]: sortOrder },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      select: {
+        id: true,
+        subject: true,
+        status: true,
+        category: true,
+        senderEmail: true,
+        senderName: true,
+        createdAt: true,
+      },
+    }),
+    prisma.ticket.count({ where }),
+  ]);
+
+  res.json({
+    data: tickets,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  });
 }

@@ -38,6 +38,11 @@ function makeTicket(overrides: Partial<Ticket> = {}): Ticket {
   };
 }
 
+function makeResponse(tickets: Ticket[] = [], total?: number) {
+  const t = total ?? tickets.length;
+  return { data: tickets, total: t, page: 1, pageSize: 10, totalPages: Math.ceil(t / 10)};
+}
+
 function renderTable() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -76,7 +81,7 @@ describe("TicketsTable", () => {
 
   describe("empty state", () => {
     it("shows 'No tickets yet.' when no tickets are returned", async () => {
-      mockApi.get.mockResolvedValue([]);
+      mockApi.get.mockResolvedValue(makeResponse([]));
       renderTable();
       expect(await screen.findByText("No tickets yet.")).toBeInTheDocument();
     });
@@ -84,60 +89,60 @@ describe("TicketsTable", () => {
 
   describe("ticket data", () => {
     it("renders the subject as a link to /tickets/:id", async () => {
-      mockApi.get.mockResolvedValue([makeTicket({ id: 42, subject: "Order problem" })]);
+      mockApi.get.mockResolvedValue(makeResponse([makeTicket({ id: 42, subject: "Order problem" })]));
       renderTable();
       const link = await screen.findByRole("link", { name: "Order problem" });
       expect(link).toHaveAttribute("href", "/tickets/42");
     });
 
     it("shows the 'open' status badge", async () => {
-      mockApi.get.mockResolvedValue([makeTicket({ status: "OPEN" })]);
+      mockApi.get.mockResolvedValue(makeResponse([makeTicket({ status: "OPEN" })]));
       renderTable();
       await screen.findByRole("link");
       expect(screen.getByText("open")).toBeInTheDocument();
     });
 
     it("shows the 'resolved' status badge", async () => {
-      mockApi.get.mockResolvedValue([makeTicket({ status: "RESOLVED" })]);
+      mockApi.get.mockResolvedValue(makeResponse([makeTicket({ status: "RESOLVED" })]));
       renderTable();
       await screen.findByRole("link");
       expect(screen.getByText("resolved")).toBeInTheDocument();
     });
 
     it("shows the 'closed' status badge", async () => {
-      mockApi.get.mockResolvedValue([makeTicket({ status: "CLOSED" })]);
+      mockApi.get.mockResolvedValue(makeResponse([makeTicket({ status: "CLOSED" })]));
       renderTable();
       await screen.findByRole("link");
       expect(screen.getByText("closed")).toBeInTheDocument();
     });
 
     it("shows '—' when category is null", async () => {
-      mockApi.get.mockResolvedValue([makeTicket({ category: null })]);
+      mockApi.get.mockResolvedValue(makeResponse([makeTicket({ category: null })]));
       renderTable();
       await screen.findByRole("link");
       expect(screen.getByText("—")).toBeInTheDocument();
     });
 
     it("shows 'General' for GENERAL_QUESTION category", async () => {
-      mockApi.get.mockResolvedValue([makeTicket({ category: "GENERAL_QUESTION" })]);
+      mockApi.get.mockResolvedValue(makeResponse([makeTicket({ category: "GENERAL_QUESTION" })]));
       renderTable();
       expect(await screen.findByText("General")).toBeInTheDocument();
     });
 
     it("shows 'Technical' for TECHNICAL_QUESTION category", async () => {
-      mockApi.get.mockResolvedValue([makeTicket({ category: "TECHNICAL_QUESTION" })]);
+      mockApi.get.mockResolvedValue(makeResponse([makeTicket({ category: "TECHNICAL_QUESTION" })]));
       renderTable();
       expect(await screen.findByText("Technical")).toBeInTheDocument();
     });
 
     it("shows 'Refund' for REFUND_REQUEST category", async () => {
-      mockApi.get.mockResolvedValue([makeTicket({ category: "REFUND_REQUEST" })]);
+      mockApi.get.mockResolvedValue(makeResponse([makeTicket({ category: "REFUND_REQUEST" })]));
       renderTable();
       expect(await screen.findByText("Refund")).toBeInTheDocument();
     });
 
     it("shows the sender name and email", async () => {
-      mockApi.get.mockResolvedValue([makeTicket()]);
+      mockApi.get.mockResolvedValue(makeResponse([makeTicket()]));
       renderTable();
       await screen.findByRole("link");
       expect(screen.getByText("Jane Smith")).toBeInTheDocument();
@@ -145,10 +150,10 @@ describe("TicketsTable", () => {
     });
 
     it("renders multiple ticket rows", async () => {
-      mockApi.get.mockResolvedValue([
+      mockApi.get.mockResolvedValue(makeResponse([
         makeTicket({ id: 1, subject: "First ticket" }),
         makeTicket({ id: 2, subject: "Second ticket" }),
-      ]);
+      ]));
       renderTable();
       expect(await screen.findByRole("link", { name: "First ticket" })).toBeInTheDocument();
       expect(screen.getByRole("link", { name: "Second ticket" })).toBeInTheDocument();
@@ -163,42 +168,73 @@ describe("TicketsTable", () => {
     });
   });
 
+  describe("pagination", () => {
+    it("shows the result range and total", async () => {
+      mockApi.get.mockResolvedValue(makeResponse(
+        Array.from({ length: 10 }, (_, i) => makeTicket({ id: i + 1, subject: `Ticket ${i + 1}` })),
+        93
+      ));
+      renderTable();
+      expect(await screen.findByText("1–10 of 93")).toBeInTheDocument();
+    });
+
+    it("disables Previous button on the first page", async () => {
+      mockApi.get.mockResolvedValue(makeResponse([makeTicket()]));
+      renderTable();
+      await screen.findByRole("link");
+      expect(screen.getByRole("button", { name: "Previous page" })).toBeDisabled();
+    });
+
+    it("disables Next button when on the last page", async () => {
+      mockApi.get.mockResolvedValue(makeResponse([makeTicket()], 1));
+      renderTable();
+      await screen.findByRole("link");
+      expect(screen.getByRole("button", { name: "Next page" })).toBeDisabled();
+    });
+  });
+
   describe("sorting", () => {
-    it("calls api.get with default sort params on mount", async () => {
-      mockApi.get.mockResolvedValue([]);
+    it("calls api.get with default sort and pagination params on mount", async () => {
+      mockApi.get.mockResolvedValue(makeResponse([]));
       renderTable();
       await screen.findByText("No tickets yet.");
       expect(mockApi.get).toHaveBeenCalledWith("/tickets", {
         sortBy: "createdAt",
         sortOrder: "desc",
+        page: "1",
+        pageSize: "10",
       });
     });
 
     it("calls api.get with new sort params when a column header is clicked", async () => {
       const user = userEvent.setup();
-      mockApi.get.mockResolvedValue([]);
+      mockApi.get.mockResolvedValue(makeResponse([]));
       renderTable();
       await screen.findByText("No tickets yet.");
-      mockApi.get.mockResolvedValue([]);
+      mockApi.get.mockResolvedValue(makeResponse([]));
       await user.click(screen.getByRole("columnheader", { name: /Subject/i }));
       expect(mockApi.get).toHaveBeenCalledWith("/tickets", {
         sortBy: "subject",
         sortOrder: "asc",
+        page: "1",
+        pageSize: "10",
       });
     });
 
     it("reverses sort direction on second click of the same header", async () => {
       const user = userEvent.setup();
-      mockApi.get.mockResolvedValue([]);
+      mockApi.get.mockResolvedValue(makeResponse([]));
       renderTable();
       await screen.findByText("No tickets yet.");
-      mockApi.get.mockResolvedValue([]);
+      mockApi.get.mockResolvedValue(makeResponse([]));
       await user.click(screen.getByRole("columnheader", { name: /Subject/i }));
-      mockApi.get.mockResolvedValue([]);
+      mockApi.get.mockResolvedValue(makeResponse([]));
       await user.click(screen.getByRole("columnheader", { name: /Subject/i }));
       expect(mockApi.get).toHaveBeenLastCalledWith("/tickets", {
         sortBy: "subject",
         sortOrder: "desc",
+        page: "1",
+        pageSize: "10",
       });
     });
   });
