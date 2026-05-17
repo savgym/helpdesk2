@@ -14,6 +14,44 @@ const listTicketsQuerySchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(100).optional().default(10),
 });
 
+export async function getTicket(req: Request, res: Response) {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    return res.status(400).json({ error: "Invalid ticket id" });
+  }
+
+  const ticket = await prisma.ticket.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      subject: true,
+      body: true,
+      status: true,
+      category: true,
+      senderEmail: true,
+      senderName: true,
+      createdAt: true,
+      updatedAt: true,
+      assignedTo: { select: { id: true, name: true, email: true } },
+      messages: {
+        select: {
+          id: true,
+          body: true,
+          senderType: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "asc" },
+      },
+    },
+  });
+
+  if (!ticket) {
+    return res.status(404).json({ error: "Ticket not found" });
+  }
+
+  res.json(ticket);
+}
+
 export async function listTickets(req: Request, res: Response) {
   const result = listTicketsQuerySchema.safeParse(req.query);
   if (!result.success) {

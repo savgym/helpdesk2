@@ -20,6 +20,7 @@ import {
   ChevronsRight,
 } from "lucide-react";
 import { api } from "../lib/api";
+import { STATUS_VARIANT, STATUS_LABEL, CATEGORY_LABEL } from "../lib/tickets";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -64,23 +65,6 @@ interface TicketsResponse {
   totalPages: number;
 }
 
-const STATUS_VARIANT: Record<TicketStatus, "default" | "secondary" | "outline"> = {
-  OPEN: "default",
-  RESOLVED: "secondary",
-  CLOSED: "outline",
-};
-
-const STATUS_LABEL: Record<TicketStatus, string> = {
-  OPEN: "Open",
-  RESOLVED: "Resolved",
-  CLOSED: "Closed",
-};
-
-const CATEGORY_LABEL: Record<TicketCategory, string> = {
-  GENERAL_QUESTION: "General",
-  TECHNICAL_QUESTION: "Technical",
-  REFUND_REQUEST: "Refund",
-};
 
 const ALL_STATUSES: TicketStatus[] = ["OPEN", "RESOLVED", "CLOSED"];
 const ALL_CATEGORIES: Array<TicketCategory | "NONE"> = [
