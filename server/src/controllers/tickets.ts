@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Request, Response } from "express";
-import { ticketSortBySchema, ticketSortOrderSchema, ticketStatusSchema, ticketCategorySchema } from "@helpdesk/core";
+import { ticketSortBySchema, ticketSortOrderSchema, ticketStatusSchema, ticketCategorySchema, createMessageSchema } from "@helpdesk/core";
 import type { TicketStatus, TicketCategory } from "@helpdesk/core";
 import prisma from "../lib/prisma";
 
@@ -59,6 +59,30 @@ export async function updateTicket(req: Request, res: Response) {
   });
 
   res.json(ticket);
+}
+
+export async function createMessage(req: Request, res: Response) {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    return res.status(400).json({ error: "Invalid ticket id" });
+  }
+
+  const result = createMessageSchema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: result.error.issues[0].message });
+  }
+
+  const ticket = await prisma.ticket.findUnique({ where: { id }, select: { id: true } });
+  if (!ticket) {
+    return res.status(404).json({ error: "Ticket not found" });
+  }
+
+  const message = await prisma.message.create({
+    data: { ticketId: id, body: result.data.body, senderType: "AGENT" },
+    select: { id: true, body: true, senderType: true, createdAt: true },
+  });
+
+  res.status(201).json(message);
 }
 
 export async function getTicket(req: Request, res: Response) {

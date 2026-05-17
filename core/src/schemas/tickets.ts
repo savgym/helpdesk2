@@ -21,3 +21,8 @@ export const ticketSortOrderSchema = z.enum(["asc", "desc"]);
 
 export type TicketSortBy = z.infer<typeof ticketSortBySchema>;
 export type TicketSortOrder = z.infer<typeof ticketSortOrderSchema>;
+
+export const createMessageSchema = z.object({
+  body: z.string().min(1, "Reply cannot be empty").max(10000, "Reply is too long"),
+});
+export type CreateMessageInput = z.infer<typeof createMessageSchema>;
