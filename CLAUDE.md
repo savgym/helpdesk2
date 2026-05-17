@@ -41,18 +41,38 @@ bunx prisma migrate deploy
 bun src/prisma/seed.ts   # creates admin user using ADMIN_EMAIL / ADMIN_PASSWORD from server/.env
 ```
 
+## Testing strategy
+
+**Default to component tests. Use E2E only when a test cannot be written at the component level.**
+
+### When to write component tests (default)
+- Rendering: loading states, empty states, column headers, badges, conditional content
+- Data display: correct fields shown, formatting, labels derived from enums
+- User interactions: button clicks, form submissions, dialog open/close
+- Error states: fetch failures, validation messages
+- Any behaviour that can be exercised by mocking `../lib/api`
+
+### When to write E2E tests (exceptions only)
+- Real browser navigation — clicking a link and asserting the URL changed
+- Multi-step flows that cross page boundaries (e.g. login → redirect → protected page)
+- Server-side ordering or DB state that cannot be meaningfully mocked (e.g. newest-first sort)
+- Auth and route-guard flows (`auth.spec.ts` already covers these — do not duplicate)
+
+If a test only needs mocked data and DOM assertions, it is a component test, not E2E.
+
 ## Component testing (Vitest + React Testing Library)
 
 ```bash
 cd client
-bun test          # run all component tests once
-bun test:ui       # open Vitest browser UI (best for writing tests)
+bun run test          # run all component tests once
+bun run test:ui       # open Vitest browser UI (best for writing tests)
 ```
 
 ### Setup
 - Config: `client/vitest.config.ts` — jsdom environment, `src/test/setup.ts` as setup file, e2e files excluded
 - Setup file (`src/test/setup.ts`) — imports `@testing-library/jest-dom` matchers and stubs `ResizeObserver`, `matchMedia`, and pointer-capture APIs required by Radix UI primitives
-- Test files live next to the component they test: `src/pages/UsersPage.test.tsx`
+- Test files live next to the component they test: `src/components/TicketsTable.test.tsx`
+- Components that use `<Link>` require a `<MemoryRouter>` wrapper — `renderWithQuery` does not include one, so wrap manually when needed
 
 ### Conventions
 - Use `renderWithQuery` from `src/test/renderWithQuery.tsx` instead of bare `render` — it wraps the component in a fresh `QueryClientProvider` with `retry: false`
@@ -72,12 +92,7 @@ bun test:e2e       # headless
 bun test:e2e:ui    # Playwright UI mode
 ```
 
-**Always use the `playwright-e2e-writer` agent to write E2E tests** — do not write Playwright tests inline. Invoke it:
-- After implementing any new page or significant feature
-- When the user explicitly asks for tests
-- After auth or routing changes that affect protected flows
-
-The agent knows the correct ports, test database, credentials, auth fixture pattern, and file naming conventions for this project.
+Use the `playwright-e2e-writer` agent to write E2E tests — do not write Playwright tests inline. Only invoke it for the cases listed in "When to write E2E tests" above. The agent knows the correct ports, test database, credentials, auth fixture pattern, and file naming conventions for this project.
 
 ## Key conventions
 
@@ -162,7 +177,7 @@ The navbar (`Layout.tsx`) renders the Users link only when `user.role === "ADMIN
 | AI       | Claude API (Anthropic)                                                  |
 | Email    | SendGrid or Mailgun (inbound webhook + outbound)                        |
 | Runtime  | Bun                                                                     |
-| Testing  | Playwright (E2E)                                                        |
+| Testing  | Vitest + React Testing Library (component), Playwright (E2E)            |
 
 ## Database models
 
