@@ -15,7 +15,9 @@ const listTicketsQuerySchema = z.object({
 });
 
 const updateTicketSchema = z.object({
-  assignedToId: z.string().nullable(),
+  assignedToId: z.string().nullable().optional(),
+  status: ticketStatusSchema.optional(),
+  category: ticketCategorySchema.nullable().optional(),
 });
 
 export async function updateTicket(req: Request, res: Response) {
@@ -29,9 +31,9 @@ export async function updateTicket(req: Request, res: Response) {
     return res.status(400).json({ error: result.error.issues[0].message });
   }
 
-  const { assignedToId } = result.data;
+  const { assignedToId, status, category } = result.data;
 
-  if (assignedToId !== null) {
+  if (assignedToId !== undefined && assignedToId !== null) {
     const agent = await prisma.user.findFirst({
       where: { id: assignedToId, deletedAt: null },
       select: { id: true },
@@ -43,9 +45,15 @@ export async function updateTicket(req: Request, res: Response) {
 
   const ticket = await prisma.ticket.update({
     where: { id },
-    data: { assignedToId },
+    data: {
+      ...(assignedToId !== undefined && { assignedToId }),
+      ...(status !== undefined && { status }),
+      ...(category !== undefined && { category }),
+    },
     select: {
       id: true,
+      status: true,
+      category: true,
       assignedTo: { select: { id: true, name: true, email: true } },
     },
   });

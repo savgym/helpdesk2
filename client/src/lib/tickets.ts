@@ -1,6 +1,9 @@
 import type { TicketStatus, TicketCategory } from "@helpdesk/core";
 
-export const STATUS_VARIANT: Record<TicketStatus, "default" | "secondary" | "outline"> = {
+export const STATUS_VARIANT: Record<
+  TicketStatus,
+  "default" | "secondary" | "outline"
+> = {
   OPEN: "default",
   RESOLVED: "secondary",
   CLOSED: "outline",

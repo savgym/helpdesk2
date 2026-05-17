@@ -110,7 +110,7 @@ const columns = [
     header: "Status",
     cell: (info) => (
       <Badge variant={STATUS_VARIANT[info.getValue() as TicketStatus]}>
-        {(info.getValue() as string).toLowerCase()}
+        {STATUS_LABEL[info.getValue() as TicketStatus]}
       </Badge>
     ),
   }),
