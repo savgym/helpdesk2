@@ -57,6 +57,16 @@ bun src/prisma/seed.ts   # creates admin user using ADMIN_EMAIL / ADMIN_PASSWORD
 - Multi-step flows that cross page boundaries (e.g. login → redirect → protected page)
 - Server-side ordering or DB state that cannot be meaningfully mocked (e.g. newest-first sort)
 - Auth and route-guard flows (`auth.spec.ts` already covers these — do not duplicate)
+- **Radix UI interactions** — Radix components (Select, Dialog, etc.) are mocked as native HTML in unit tests; only a real browser can verify that clicking the trigger opens the dropdown, selecting an option fires the correct callback, and the trigger text updates
+
+Before writing any E2E test, ask: "Is there an existing unit test that already covers this assertion?" If yes, do not write the E2E test.
+
+Specifically **do not** write E2E tests for:
+- Rendering: text, badges, labels — covered by component tests
+- Loading/error/empty states — covered by component tests (mock the query)
+- Form validation messages — covered by component tests
+- API calls and their payloads — covered by component tests (mock `api`)
+- Anything that only needs mocked data and DOM assertions
 
 If a test only needs mocked data and DOM assertions, it is a component test, not E2E.
 

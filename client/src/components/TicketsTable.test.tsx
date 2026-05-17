@@ -99,21 +99,22 @@ describe("TicketsTable", () => {
       mockApi.get.mockResolvedValue(makeResponse([makeTicket({ status: "OPEN" })]));
       renderTable();
       await screen.findByRole("link");
-      expect(screen.getByText("open")).toBeInTheDocument();
+      // Filter bar always renders an "Open" pill; the badge in the row makes a second occurrence.
+      expect(screen.getAllByText("Open").length).toBeGreaterThan(1);
     });
 
     it("shows the 'resolved' status badge", async () => {
       mockApi.get.mockResolvedValue(makeResponse([makeTicket({ status: "RESOLVED" })]));
       renderTable();
       await screen.findByRole("link");
-      expect(screen.getByText("resolved")).toBeInTheDocument();
+      expect(screen.getAllByText("Resolved").length).toBeGreaterThan(1);
     });
 
     it("shows the 'closed' status badge", async () => {
       mockApi.get.mockResolvedValue(makeResponse([makeTicket({ status: "CLOSED" })]));
       renderTable();
       await screen.findByRole("link");
-      expect(screen.getByText("closed")).toBeInTheDocument();
+      expect(screen.getAllByText("Closed").length).toBeGreaterThan(1);
     });
 
     it("shows '—' when category is null", async () => {
