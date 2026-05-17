@@ -18,7 +18,8 @@ client.interceptors.response.use(
 );
 
 export const api = {
-  get: <T>(path: string) => client.get<T>(path).then((r) => r.data),
+  get: <T>(path: string, params?: Record<string, string>) =>
+    client.get<T>(path, { params }).then((r) => r.data),
   post: <T>(path: string, body: unknown) =>
     client.post<T>(path, body).then((r) => r.data),
   patch: <T>(path: string, body: unknown) =>

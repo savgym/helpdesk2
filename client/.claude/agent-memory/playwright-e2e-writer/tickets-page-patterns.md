@@ -39,3 +39,20 @@ Seed with a 50 ms delay between the two calls to guarantee distinct `createdAt`.
 ## Route
 
 `/tickets/:id` — subject link navigates there; URL pattern is `/tickets/<numeric-id>`. Assert with `page.waitForURL(/\/tickets\/\d+/)`.
+
+## Server-side sorting
+
+**Sort icon `data-testid` pattern** (added to TicketsTable.tsx):
+- `sort-icon-<columnId>-asc` — ChevronUp (ascending active)
+- `sort-icon-<columnId>-desc` — ChevronDown (descending active)
+- `sort-icon-<columnId>-none` — ChevronsUpDown (not sorted)
+
+Column IDs match TanStack Table accessor keys: `subject`, `senderName`, `status`, `category`, `createdAt`.
+
+**Default sort state**: `createdAt desc` — on page load `sort-icon-createdAt-desc` is visible and all others show `-none`.
+
+**`sortDescFirst: false`** means the first click on an unsorted column produces `sortOrder=asc`, the second click produces `sortOrder=desc`.
+
+**`withMockedTickets(page, fn)` helper pattern**: arms `page.route("**/api/tickets**")` before calling `fn()`, captures every intercepted request URL into an array, unroutes after `fn()` resolves, returns the URL array. Use this for all sort indicator / query param tests — avoids DB dependency, gives stable row content (`SORT_MOCK_TICKETS`), and lets you assert query params post-hoc via `capturedUrls.find(u => u.searchParams.get("sortBy") === "subject")`.
+
+**Selector for column header click**: `page.getByRole("columnheader", { name: /subject/i })`. For Status use `{ name: /^status$/i }` to avoid partial match with "Category" or other words.

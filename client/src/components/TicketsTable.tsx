@@ -1,5 +1,14 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import {
+  useReactTable,
+  getCoreRowModel,
+  flexRender,
+  createColumnHelper,
+  type SortingState,
+} from "@tanstack/react-table";
+import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { api } from "../lib/api";
 import { Badge } from "./ui/badge";
 import { Skeleton } from "./ui/skeleton";
@@ -11,12 +20,12 @@ import {
   TableHeader,
   TableRow,
 } from "./ui/table";
-
-type TicketStatus = "OPEN" | "RESOLVED" | "CLOSED";
-type TicketCategory =
-  | "GENERAL_QUESTION"
-  | "TECHNICAL_QUESTION"
-  | "REFUND_REQUEST";
+import type {
+  TicketStatus,
+  TicketCategory,
+  TicketSortBy,
+  TicketSortOrder,
+} from "@helpdesk/core";
 
 interface Ticket {
   id: number;
@@ -28,10 +37,7 @@ interface Ticket {
   createdAt: string;
 }
 
-const STATUS_VARIANT: Record<
-  TicketStatus,
-  "default" | "secondary" | "outline"
-> = {
+const STATUS_VARIANT: Record<TicketStatus, "default" | "secondary" | "outline"> = {
   OPEN: "default",
   RESOLVED: "secondary",
   CLOSED: "outline",
@@ -50,14 +56,86 @@ function formatDate(iso: string) {
   });
 }
 
+const columnHelper = createColumnHelper<Ticket>();
+
+const columns = [
+  columnHelper.accessor("subject", {
+    header: "Subject",
+    cell: (info) => (
+      <Link
+        to={`/tickets/${info.row.original.id}`}
+        className="hover:underline truncate block"
+      >
+        {info.getValue() as string}
+      </Link>
+    ),
+  }),
+  columnHelper.accessor("senderName", {
+    header: "Sender",
+    cell: (info) => (
+      <div>
+        <div className="text-sm">{info.getValue() as string}</div>
+        <div className="text-xs text-muted-foreground">
+          {info.row.original.senderEmail}
+        </div>
+      </div>
+    ),
+  }),
+  columnHelper.accessor("status", {
+    header: "Status",
+    cell: (info) => (
+      <Badge variant={STATUS_VARIANT[info.getValue() as TicketStatus]}>
+        {(info.getValue() as string).toLowerCase()}
+      </Badge>
+    ),
+  }),
+  columnHelper.accessor("category", {
+    header: "Category",
+    cell: (info) => {
+      const cat = info.getValue() as TicketCategory | null;
+      return cat ? (
+        <Badge variant="secondary">{CATEGORY_LABEL[cat]}</Badge>
+      ) : (
+        <span className="text-muted-foreground text-sm">—</span>
+      );
+    },
+  }),
+  columnHelper.accessor("createdAt", {
+    header: "Created",
+    cell: (info) => (
+      <span className="text-sm text-muted-foreground whitespace-nowrap">
+        {formatDate(info.getValue() as string)}
+      </span>
+    ),
+  }),
+];
+
 export function TicketsTable() {
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "createdAt", desc: true },
+  ]);
+
+  const sortBy = (sorting[0]?.id ?? "createdAt") as TicketSortBy;
+  const sortOrder: TicketSortOrder = sorting[0]?.desc === false ? "asc" : "desc";
+
   const {
     data: tickets = [],
     isLoading,
     error,
   } = useQuery<Ticket[], Error>({
-    queryKey: ["tickets"],
-    queryFn: () => api.get<Ticket[]>("/tickets"),
+    queryKey: ["tickets", sortBy, sortOrder],
+    queryFn: () => api.get<Ticket[]>("/tickets", { sortBy, sortOrder }),
+  });
+
+  const table = useReactTable({
+    data: tickets,
+    columns,
+    state: { sorting },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    manualSorting: true,
+    enableSortingRemoval: false,
+    sortDescFirst: false,
   });
 
   return (
@@ -71,13 +149,42 @@ export function TicketsTable() {
       <div className="rounded-md border bg-white">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Subject</TableHead>
-              <TableHead>Sender</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Created</TableHead>
-            </TableRow>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead
+                    key={header.id}
+                    onClick={header.column.getToggleSortingHandler()}
+                    className="cursor-pointer select-none"
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      {flexRender(
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
+                      {header.column.getIsSorted() === "asc" && (
+                        <ArrowUp
+                          className="h-4 w-4"
+                          data-testid={`sort-icon-${header.column.id}-asc`}
+                        />
+                      )}
+                      {header.column.getIsSorted() === "desc" && (
+                        <ArrowDown
+                          className="h-4 w-4"
+                          data-testid={`sort-icon-${header.column.id}-desc`}
+                        />
+                      )}
+                      {!header.column.getIsSorted() && (
+                        <ArrowUpDown
+                          className="h-4 w-4 text-muted-foreground"
+                          data-testid={`sort-icon-${header.column.id}-none`}
+                        />
+                      )}
+                    </span>
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
           </TableHeader>
           <TableBody>
             {isLoading ? (
@@ -100,39 +207,18 @@ export function TicketsTable() {
                 </TableCell>
               </TableRow>
             ) : (
-              tickets.map((t) => (
-                <TableRow key={t.id}>
-                  <TableCell className="font-medium max-w-xs">
-                    <Link
-                      to={`/tickets/${t.id}`}
-                      className="hover:underline truncate block"
+              table.getRowModel().rows.map((row) => (
+                <TableRow key={row.id}>
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell
+                      key={cell.id}
+                      className={
+                        cell.column.id === "subject" ? "font-medium max-w-xs" : undefined
+                      }
                     >
-                      {t.subject}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">{t.senderName}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {t.senderEmail}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={STATUS_VARIANT[t.status]}>
-                      {t.status.toLowerCase()}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {t.category ? (
-                      <Badge variant="secondary">
-                        {CATEGORY_LABEL[t.category]}
-                      </Badge>
-                    ) : (
-                      <span className="text-muted-foreground text-sm">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                    {formatDate(t.createdAt)}
-                  </TableCell>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
                 </TableRow>
               ))
             )}

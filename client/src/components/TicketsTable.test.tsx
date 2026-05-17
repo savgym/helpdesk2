@@ -2,6 +2,7 @@ import React from "react";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import { screen } from "@testing-library/react";
 import { render } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TicketsTable } from "./TicketsTable";
@@ -159,6 +160,46 @@ describe("TicketsTable", () => {
       mockApi.get.mockRejectedValue(new Error("Network error"));
       renderTable();
       expect(await screen.findByText("Network error")).toBeInTheDocument();
+    });
+  });
+
+  describe("sorting", () => {
+    it("calls api.get with default sort params on mount", async () => {
+      mockApi.get.mockResolvedValue([]);
+      renderTable();
+      await screen.findByText("No tickets yet.");
+      expect(mockApi.get).toHaveBeenCalledWith("/tickets", {
+        sortBy: "createdAt",
+        sortOrder: "desc",
+      });
+    });
+
+    it("calls api.get with new sort params when a column header is clicked", async () => {
+      const user = userEvent.setup();
+      mockApi.get.mockResolvedValue([]);
+      renderTable();
+      await screen.findByText("No tickets yet.");
+      mockApi.get.mockResolvedValue([]);
+      await user.click(screen.getByRole("columnheader", { name: /Subject/i }));
+      expect(mockApi.get).toHaveBeenCalledWith("/tickets", {
+        sortBy: "subject",
+        sortOrder: "asc",
+      });
+    });
+
+    it("reverses sort direction on second click of the same header", async () => {
+      const user = userEvent.setup();
+      mockApi.get.mockResolvedValue([]);
+      renderTable();
+      await screen.findByText("No tickets yet.");
+      mockApi.get.mockResolvedValue([]);
+      await user.click(screen.getByRole("columnheader", { name: /Subject/i }));
+      mockApi.get.mockResolvedValue([]);
+      await user.click(screen.getByRole("columnheader", { name: /Subject/i }));
+      expect(mockApi.get).toHaveBeenLastCalledWith("/tickets", {
+        sortBy: "subject",
+        sortOrder: "desc",
+      });
     });
   });
 });

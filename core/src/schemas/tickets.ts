@@ -9,3 +9,15 @@ export const ticketCategorySchema = z.enum([
 
 export type TicketStatus = z.infer<typeof ticketStatusSchema>;
 export type TicketCategory = z.infer<typeof ticketCategorySchema>;
+
+export const ticketSortBySchema = z.enum([
+  "subject",
+  "senderName",
+  "status",
+  "category",
+  "createdAt",
+]);
+export const ticketSortOrderSchema = z.enum(["asc", "desc"]);
+
+export type TicketSortBy = z.infer<typeof ticketSortBySchema>;
+export type TicketSortOrder = z.infer<typeof ticketSortOrderSchema>;
