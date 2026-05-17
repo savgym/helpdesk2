@@ -5,6 +5,7 @@ import rateLimit from "express-rate-limit";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "./lib/auth";
 import usersRouter from "./routes/users";
+import inboundRouter from "./routes/inbound";
 
 const app = express();
 
@@ -30,6 +31,10 @@ app.all("/api/auth/*path", (req, res, next) => {
     next(err);
   });
 });
+
+// Inbound webhook — larger body limit before the global 50 kb cap
+app.use("/api/inbound", express.json({ limit: "5mb" }), express.urlencoded({ extended: true, limit: "5mb" }));
+app.use("/api/inbound", inboundRouter);
 
 app.use(express.json({ limit: "50kb" }));
 

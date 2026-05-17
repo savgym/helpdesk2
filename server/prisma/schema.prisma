@@ -62,13 +62,13 @@ model Verification {
 }
 
 model Ticket {
-  id           String          @id @default(cuid())
+  id           Int             @id @default(autoincrement())
   subject      String
   body         String
   status       TicketStatus    @default(OPEN)
   category     TicketCategory?
   senderEmail  String
-  senderName   String?
+  senderName   String
   assignedTo   User?           @relation("AssignedAgent", fields: [assignedToId], references: [id])
   assignedToId String?
   messages     Message[]
@@ -96,7 +96,7 @@ enum TicketCategory {
 model Message {
   id         String     @id @default(cuid())
   ticket     Ticket     @relation(fields: [ticketId], references: [id])
-  ticketId   String
+  ticketId   Int
   body       String
   senderType SenderType
   createdAt  DateTime   @default(now())
