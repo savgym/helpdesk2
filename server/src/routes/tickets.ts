@@ -6,4 +6,5 @@ const router = Router();
 router.use(requireAuth);
 router.get("/", tickets.listTickets);
 router.get("/:id", tickets.getTicket);
+router.patch("/:id", tickets.updateTicket);
 export default router;

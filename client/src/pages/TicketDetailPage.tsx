@@ -1,10 +1,17 @@
 import { Link, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { api } from "../lib/api";
 import { STATUS_VARIANT } from "../lib/tickets";
 import { Badge } from "../components/ui/badge";
 import { Skeleton } from "../components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
 import type { TicketStatus, TicketCategory } from "@helpdesk/core";
 
 interface Message {
@@ -12,6 +19,13 @@ interface Message {
   body: string;
   senderType: "CUSTOMER" | "AGENT";
   createdAt: string;
+}
+
+interface Agent {
+  id: string;
+  name: string;
+  email: string;
+  role: "ADMIN" | "AGENT";
 }
 
 interface TicketDetail {
@@ -40,11 +54,30 @@ function formatDate(iso: string) {
 
 export default function TicketDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
 
   const { data: ticket, isLoading, error } = useQuery<TicketDetail, Error>({
     queryKey: ["ticket", id],
     queryFn: () => api.get<TicketDetail>(`/tickets/${id}`),
     enabled: !!id,
+  });
+
+  const { data: agents = [] } = useQuery<Agent[], Error>({
+    queryKey: ["users"],
+    queryFn: () => api.get<Agent[]>("/users"),
+  });
+
+  const { mutate: assign, isPending: isAssigning } = useMutation({
+    mutationFn: (assignedToId: string | null) =>
+      api.patch<{ id: number; assignedTo: TicketDetail["assignedTo"] }>(
+        `/tickets/${id}`,
+        { assignedToId }
+      ),
+    onSuccess: (updated) => {
+      queryClient.setQueryData<TicketDetail>(["ticket", id], (prev) =>
+        prev ? { ...prev, assignedTo: updated.assignedTo } : prev
+      );
+    },
   });
 
   return (
@@ -86,15 +119,31 @@ export default function TicketDetailPage() {
           </div>
 
           {/* Meta */}
-          <div className="grid grid-cols-2 gap-y-1.5 text-sm">
+          <div className="grid grid-cols-2 gap-y-2 text-sm">
             <p>
               <span className="text-muted-foreground">From: </span>
               {ticket.senderName} ({ticket.senderEmail})
             </p>
-            <p>
-              <span className="text-muted-foreground">Assigned to: </span>
-              {ticket.assignedTo ? ticket.assignedTo.name : "Unassigned"}
-            </p>
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground">Assigned to:</span>
+              <Select
+                value={ticket.assignedTo?.id ?? "unassigned"}
+                onValueChange={(val) => assign(val === "unassigned" ? null : val)}
+                disabled={isAssigning}
+              >
+                <SelectTrigger className="h-7 w-44 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                  {agents.map((agent) => (
+                    <SelectItem key={agent.id} value={agent.id}>
+                      {agent.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <p>
               <span className="text-muted-foreground">Created: </span>
               {formatDate(ticket.createdAt)}

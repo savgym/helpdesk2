@@ -14,6 +14,45 @@ const listTicketsQuerySchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(100).optional().default(10),
 });
 
+const updateTicketSchema = z.object({
+  assignedToId: z.string().nullable(),
+});
+
+export async function updateTicket(req: Request, res: Response) {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    return res.status(400).json({ error: "Invalid ticket id" });
+  }
+
+  const result = updateTicketSchema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: result.error.issues[0].message });
+  }
+
+  const { assignedToId } = result.data;
+
+  if (assignedToId !== null) {
+    const agent = await prisma.user.findFirst({
+      where: { id: assignedToId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!agent) {
+      return res.status(400).json({ error: "Agent not found" });
+    }
+  }
+
+  const ticket = await prisma.ticket.update({
+    where: { id },
+    data: { assignedToId },
+    select: {
+      id: true,
+      assignedTo: { select: { id: true, name: true, email: true } },
+    },
+  });
+
+  res.json(ticket);
+}
+
 export async function getTicket(req: Request, res: Response) {
   const id = Number(req.params.id);
   if (!Number.isInteger(id) || id < 1) {
