@@ -24,10 +24,14 @@ export default function ReplyForm({ ticketId, onSuccess }: Props) {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<CreateMessageInput>({
     resolver: zodResolver(createMessageSchema),
   });
+
+  const draft = watch("body");
 
   const { mutate, isPending, error } = useMutation({
     mutationFn: (data: CreateMessageInput) =>
@@ -35,6 +39,14 @@ export default function ReplyForm({ ticketId, onSuccess }: Props) {
     onSuccess: (message) => {
       reset();
       onSuccess(message);
+    },
+  });
+
+  const { mutate: polish, isPending: isPolishing, error: polishError } = useMutation({
+    mutationFn: () =>
+      api.post<{ polished: string }>(`/tickets/${ticketId}/polish`, { draft }),
+    onSuccess: ({ polished }) => {
+      setValue("body", polished, { shouldValidate: true });
     },
   });
 
@@ -49,12 +61,21 @@ export default function ReplyForm({ ticketId, onSuccess }: Props) {
         {...register("body")}
         placeholder="Write your reply..."
         rows={4}
-        disabled={isPending}
+        disabled={isPending || isPolishing}
       />
       <ErrorMessage message={errors.body?.message} />
       {error && <ErrorMessage message={error.message} />}
-      <div className="flex justify-end">
-        <Button type="submit" disabled={isPending}>
+      {polishError && <ErrorMessage message={polishError.message} />}
+      <div className="flex justify-end gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          disabled={isPolishing || isPending || !draft?.trim()}
+          onClick={() => polish()}
+        >
+          {isPolishing ? "Polishing…" : "Polish"}
+        </Button>
+        <Button type="submit" disabled={isPending || isPolishing || !draft?.trim()}>
           {isPending ? "Sending…" : "Send Reply"}
         </Button>
       </div>

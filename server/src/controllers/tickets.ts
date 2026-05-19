@@ -1,7 +1,15 @@
-import { z } from "zod";
+import { openai } from "@ai-sdk/openai";
+import type { TicketCategory, TicketStatus } from "@helpdesk/core";
+import {
+  createMessageSchema,
+  ticketCategorySchema,
+  ticketSortBySchema,
+  ticketSortOrderSchema,
+  ticketStatusSchema,
+} from "@helpdesk/core";
+import { generateText } from "ai";
 import type { Request, Response } from "express";
-import { ticketSortBySchema, ticketSortOrderSchema, ticketStatusSchema, ticketCategorySchema, createMessageSchema } from "@helpdesk/core";
-import type { TicketStatus, TicketCategory } from "@helpdesk/core";
+import { z } from "zod";
 import prisma from "../lib/prisma";
 import { stripHtml } from "../lib/sanitize";
 
@@ -20,6 +28,48 @@ const updateTicketSchema = z.object({
   status: ticketStatusSchema.optional(),
   category: ticketCategorySchema.nullable().optional(),
 });
+
+const polishReplySchema = z.object({
+  draft: z.string().min(1, "Draft cannot be empty"),
+});
+
+export async function polishReply(req: Request, res: Response) {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    return res.status(400).json({ error: "Invalid ticket id" });
+  }
+
+  const result = polishReplySchema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: result.error.issues[0].message });
+  }
+
+  const ticket = await prisma.ticket.findUnique({
+    where: { id },
+    select: { subject: true, body: true, senderName: true },
+  });
+  if (!ticket) {
+    return res.status(404).json({ error: "Ticket not found" });
+  }
+
+  const agentName = res.locals.session.user.name as string;
+
+  let text: string;
+  try {
+    ({ text } = await generateText({
+      model: openai("gpt-5-nano"),
+      system: `You are a professional customer support agent. You will be given a support ticket and a draft reply written by an agent. Improve the reply to be clearer, more professional, empathetic, and concise. Address the customer by their first name. Return ONLY the improved reply body with no signature, preamble, or extra commentary.`,
+      prompt: `Customer name: ${ticket.senderName}\nSupport ticket subject: ${ticket.subject}\nCustomer message: ${ticket.body}\n\nAgent draft reply:\n${result.data.draft}`,
+    }));
+  } catch (err: unknown) {
+    console.error("[Polish AI error]", err);
+    const message = err instanceof Error ? err.message : "AI request failed";
+    return res.status(502).json({ error: message });
+  }
+
+  const signed = `${text}\n\nBest regards,\n${agentName}\nhttps://savasgmn.com`;
+  res.json({ polished: signed });
+}
 
 export async function updateTicket(req: Request, res: Response) {
   const id = Number(req.params.id);
@@ -73,13 +123,20 @@ export async function createMessage(req: Request, res: Response) {
     return res.status(400).json({ error: result.error.issues[0].message });
   }
 
-  const ticket = await prisma.ticket.findUnique({ where: { id }, select: { id: true } });
+  const ticket = await prisma.ticket.findUnique({
+    where: { id },
+    select: { id: true },
+  });
   if (!ticket) {
     return res.status(404).json({ error: "Ticket not found" });
   }
 
   const message = await prisma.message.create({
-    data: { ticketId: id, body: stripHtml(result.data.body), senderType: "AGENT" },
+    data: {
+      ticketId: id,
+      body: stripHtml(result.data.body),
+      senderType: "AGENT",
+    },
     select: { id: true, body: true, senderType: true, createdAt: true },
   });
 
@@ -130,15 +187,20 @@ export async function listTickets(req: Request, res: Response) {
     return res.status(400).json({ error: result.error.issues[0].message });
   }
 
-  const { sortBy, sortOrder, search, status, category, page, pageSize } = result.data;
+  const { sortBy, sortOrder, search, status, category, page, pageSize } =
+    result.data;
 
   const statusValues = status
-    ? status.split(",").filter((s): s is TicketStatus => ticketStatusSchema.safeParse(s).success)
+    ? status
+        .split(",")
+        .filter(
+          (s): s is TicketStatus => ticketStatusSchema.safeParse(s).success,
+        )
     : [];
 
   const rawCategories = category ? category.split(",") : [];
-  const enumCategories = rawCategories.filter((c): c is TicketCategory =>
-    ticketCategorySchema.safeParse(c).success
+  const enumCategories = rawCategories.filter(
+    (c): c is TicketCategory => ticketCategorySchema.safeParse(c).success,
   );
   const includeUncategorized = rawCategories.includes("NONE");
 
@@ -161,7 +223,9 @@ export async function listTickets(req: Request, res: Response) {
   if (enumCategories.length || includeUncategorized) {
     andConditions.push({
       OR: [
-        ...(enumCategories.length ? [{ category: { in: enumCategories } }] : []),
+        ...(enumCategories.length
+          ? [{ category: { in: enumCategories } }]
+          : []),
         ...(includeUncategorized ? [{ category: null }] : []),
       ],
     });
