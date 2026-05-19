@@ -10,7 +10,17 @@ import inboundRouter from "./routes/inbound";
 
 const app = express();
 
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'none'"],
+        connectSrc: ["'self'"],
+        frameAncestors: ["'none'"],
+      },
+    },
+  })
+);
 
 const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173").split(",");
 app.use(cors({ origin: allowedOrigins, credentials: true }));

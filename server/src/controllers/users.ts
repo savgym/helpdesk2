@@ -149,5 +149,6 @@ export async function deleteUser(req: Request, res: Response) {
 
   await prisma.user.update({ where: { id }, data: { deletedAt: new Date() } });
   await prisma.session.deleteMany({ where: { userId: id } });
+  await prisma.ticket.updateMany({ where: { assignedToId: id }, data: { assignedToId: null } });
   res.status(204).send();
 }

@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
 import prisma from "../lib/prisma";
+import { stripHtml } from "../lib/sanitize";
 
 const emailSchema = z.object({
   from:     z.email({ error: "A valid sender email is required" }),
@@ -28,9 +29,9 @@ export async function receiveEmail(req: Request, res: Response) {
   const ticket = await prisma.ticket.create({
     data: {
       senderEmail: from.toLowerCase(),
-      senderName:  fromName,
-      subject,
-      body,
+      senderName:  stripHtml(fromName),
+      subject:     stripHtml(subject),
+      body:        stripHtml(body),
     },
     select: { id: true, subject: true, senderEmail: true, senderName: true, createdAt: true },
   });

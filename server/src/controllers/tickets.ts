@@ -3,6 +3,7 @@ import type { Request, Response } from "express";
 import { ticketSortBySchema, ticketSortOrderSchema, ticketStatusSchema, ticketCategorySchema, createMessageSchema } from "@helpdesk/core";
 import type { TicketStatus, TicketCategory } from "@helpdesk/core";
 import prisma from "../lib/prisma";
+import { stripHtml } from "../lib/sanitize";
 
 const listTicketsQuerySchema = z.object({
   sortBy: ticketSortBySchema.optional().default("createdAt"),
@@ -78,7 +79,7 @@ export async function createMessage(req: Request, res: Response) {
   }
 
   const message = await prisma.message.create({
-    data: { ticketId: id, body: result.data.body, senderType: "AGENT" },
+    data: { ticketId: id, body: stripHtml(result.data.body), senderType: "AGENT" },
     select: { id: true, body: true, senderType: true, createdAt: true },
   });
 
