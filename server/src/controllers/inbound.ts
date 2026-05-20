@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
+import { classifyTicketAsync } from "../lib/classify";
 import prisma from "../lib/prisma";
 import { stripHtml } from "../lib/sanitize";
 
@@ -33,8 +34,10 @@ export async function receiveEmail(req: Request, res: Response) {
       subject:     stripHtml(subject),
       body:        stripHtml(body),
     },
-    select: { id: true, subject: true, senderEmail: true, senderName: true, createdAt: true },
+    select: { id: true, subject: true, body: true, senderEmail: true, senderName: true, createdAt: true },
   });
+
+  classifyTicketAsync(ticket);
 
   res.status(201).json(ticket);
 }
