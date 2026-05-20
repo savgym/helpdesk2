@@ -1,4 +1,6 @@
 import app from "./app";
+import boss from "./lib/boss";
+import { CLASSIFY_TICKET_QUEUE, classifyTicketWorker } from "./workers/classifyTicket";
 
 if (!process.env.BETTER_AUTH_SECRET) {
   console.error("FATAL: BETTER_AUTH_SECRET is not set. Refusing to start.");
@@ -11,6 +13,11 @@ if (process.env.BETTER_AUTH_SECRET.length < 32) {
 }
 
 const PORT = process.env.PORT || 3000;
+
+await boss.start();
+await boss.createQueue(CLASSIFY_TICKET_QUEUE);
+await boss.work(CLASSIFY_TICKET_QUEUE, classifyTicketWorker);
+console.log("[pg-boss] started, classify-ticket worker registered");
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
