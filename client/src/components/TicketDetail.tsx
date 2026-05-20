@@ -1,6 +1,7 @@
 import { Badge } from "./ui/badge";
 import ReplyForm from "./ReplyForm";
 import UpdateTicket from "./UpdateTicket";
+import TicketSummary from "./TicketSummary";
 import type { TicketStatus, TicketCategory } from "@helpdesk/core";
 
 export interface Message {
@@ -97,6 +98,8 @@ export default function TicketDetail({ ticket, agents, onUpdate, isPending, onRe
             ))}
           </div>
         )}
+
+        <TicketSummary ticketId={ticket.id} />
 
         <ReplyForm ticketId={ticket.id} onSuccess={onReplySuccess} />
       </div>

@@ -33,6 +33,51 @@ const polishReplySchema = z.object({
   draft: z.string().min(1, "Draft cannot be empty"),
 });
 
+export async function summarizeTicket(req: Request, res: Response) {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    return res.status(400).json({ error: "Invalid ticket id" });
+  }
+
+  const ticket = await prisma.ticket.findUnique({
+    where: { id },
+    select: {
+      subject: true,
+      body: true,
+      senderName: true,
+      messages: {
+        select: { body: true, senderType: true, createdAt: true },
+        orderBy: { createdAt: "asc" },
+      },
+    },
+  });
+  if (!ticket) {
+    return res.status(404).json({ error: "Ticket not found" });
+  }
+
+  const conversation = [
+    `Customer (${ticket.senderName}): ${ticket.body}`,
+    ...ticket.messages.map((m) =>
+      `${m.senderType === "AGENT" ? "Agent" : `Customer (${ticket.senderName})`}: ${m.body}`
+    ),
+  ].join("\n\n");
+
+  let text: string;
+  try {
+    ({ text } = await generateText({
+      model: openai("gpt-5-nano"),
+      system: `You are a support ticket analyst. Summarize the support conversation concisely in 2-4 sentences. Cover: the customer's core issue, any steps taken so far, and the current resolution status. Be factual and neutral.`,
+      prompt: `Subject: ${ticket.subject}\n\n${conversation}`,
+    }));
+  } catch (err: unknown) {
+    console.error("[Summarize AI error]", err);
+    const message = err instanceof Error ? err.message : "AI request failed";
+    return res.status(502).json({ error: message });
+  }
+
+  res.json({ summary: text });
+}
+
 export async function polishReply(req: Request, res: Response) {
   const id = Number(req.params.id);
   if (!Number.isInteger(id) || id < 1) {
