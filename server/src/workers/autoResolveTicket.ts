@@ -73,12 +73,12 @@ ${body}`,
     object = parsed.data;
   } catch (err) {
     console.error(`[auto-resolve] AI error for ticket ${id}:`, err);
-    await prisma.ticket.update({ where: { id }, data: { status: "OPEN" } });
+    await prisma.ticket.update({ where: { id }, data: { status: "OPEN", assignedToId: null } });
     return;
   }
 
   if (!object.resolve || !object.message) {
-    await prisma.ticket.update({ where: { id }, data: { status: "OPEN" } });
+    await prisma.ticket.update({ where: { id }, data: { status: "OPEN", assignedToId: null } });
     return;
   }
 
@@ -90,7 +90,7 @@ ${body}`,
     }),
     prisma.ticket.update({
       where: { id },
-      data: { status: "RESOLVED" },
+      data: { status: "RESOLVED", resolvedByAI: true, resolvedAt: new Date() },
     }),
   ]);
 

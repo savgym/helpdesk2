@@ -72,6 +72,8 @@ model Ticket {
   assignedTo   User?           @relation("AssignedAgent", fields: [assignedToId], references: [id])
   assignedToId String?
   messages     Message[]
+  resolvedByAI Boolean         @default(false)
+  resolvedAt   DateTime?
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 }

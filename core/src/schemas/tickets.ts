@@ -26,3 +26,13 @@ export const createMessageSchema = z.object({
   body: z.string().min(1, "Reply cannot be empty").max(10000, "Reply is too long"),
 });
 export type CreateMessageInput = z.infer<typeof createMessageSchema>;
+
+export const dashboardStatsSchema = z.object({
+  totalTickets: z.number().int(),
+  openTickets: z.number().int(),
+  resolvedByAI: z.number().int(),
+  resolvedByAIPercent: z.number(),
+  avgResolutionMinutes: z.number().nullable(),
+  ticketsPerDay: z.array(z.object({ date: z.string(), count: z.number().int() })),
+});
+export type DashboardStats = z.infer<typeof dashboardStatsSchema>;

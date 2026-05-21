@@ -6,6 +6,7 @@ import { toNodeHandler } from "better-auth/node";
 import { auth } from "./lib/auth";
 import usersRouter from "./routes/users";
 import ticketsRouter from "./routes/tickets";
+import statsRouter from "./routes/stats";
 import inboundRouter from "./routes/inbound";
 
 const app = express();
@@ -55,6 +56,7 @@ app.get("/api/health", (_req, res) => {
 
 app.use("/api/users", usersRouter);
 app.use("/api/tickets", ticketsRouter);
+app.use("/api/stats", statsRouter);
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);

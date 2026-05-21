@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Ticket" ADD COLUMN "resolvedAt" TIMESTAMP(3);
+ALTER TABLE "Ticket" ADD COLUMN "resolvedByAI" BOOLEAN NOT NULL DEFAULT false;

@@ -21,21 +21,36 @@ async function main() {
 
   const existing = await prisma.user.findUnique({ where: { email } });
 
-  if (existing) {
-    console.log(`Admin already exists (${email}), skipping seed.`);
-    return;
+  if (!existing) {
+    await seedAuth.api.signUpEmail({
+      body: { name: "Admin", email, password },
+    });
+
+    await prisma.user.update({
+      where: { email },
+      data: { role: Role.ADMIN },
+    });
+
+    console.log(`Admin user created: ${email} (role: ${Role.ADMIN})`);
+  } else {
+    console.log(`Admin already exists (${email}), skipping.`);
   }
 
-  await seedAuth.api.signUpEmail({
-    body: { name: "Admin", email, password },
+  await prisma.user.upsert({
+    where: { email: "ai@helpdesk.internal" },
+    update: {},
+    create: {
+      id: "ai-agent",
+      name: "AI",
+      email: "ai@helpdesk.internal",
+      emailVerified: true,
+      role: Role.AGENT,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
   });
 
-  await prisma.user.update({
-    where: { email },
-    data: { role: Role.ADMIN },
-  });
-
-  console.log(`Admin user created: ${email} (role: ${Role.ADMIN})`);
+  console.log("AI agent user ensured.");
 }
 
 main().catch(console.error);

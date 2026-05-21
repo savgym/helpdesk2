@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
 import { classifyTicketAsync } from "../lib/classify";
+import { getAIAgentId } from "../lib/aiAgent";
 import prisma from "../lib/prisma";
 import { stripHtml } from "../lib/sanitize";
 
@@ -27,12 +28,15 @@ export async function receiveEmail(req: Request, res: Response) {
 
   const { from, fromName, subject, body } = result.data;
 
+  const aiAgentId = await getAIAgentId();
+
   const ticket = await prisma.ticket.create({
     data: {
       senderEmail: from.toLowerCase(),
       senderName:  stripHtml(fromName),
       subject:     stripHtml(subject),
       body:        stripHtml(body),
+      ...(aiAgentId && { assignedToId: aiAgentId }),
     },
     select: { id: true, subject: true, body: true, senderEmail: true, senderName: true, createdAt: true },
   });
