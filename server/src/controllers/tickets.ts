@@ -235,7 +235,7 @@ export async function listTickets(req: Request, res: Response) {
   const { sortBy, sortOrder, search, status, category, page, pageSize } =
     result.data;
 
-  const statusValues = status
+  const statusValues: TicketStatus[] = status
     ? status
         .split(",")
         .filter(

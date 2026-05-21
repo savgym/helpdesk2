@@ -66,7 +66,7 @@ interface TicketsResponse {
 }
 
 
-const ALL_STATUSES: TicketStatus[] = ["OPEN", "RESOLVED", "CLOSED"];
+const ALL_STATUSES: TicketStatus[] = ["NEW", "PROCESSING", "OPEN", "RESOLVED", "CLOSED"];
 const ALL_CATEGORIES: Array<TicketCategory | "NONE"> = [
   "GENERAL_QUESTION",
   "TECHNICAL_QUESTION",

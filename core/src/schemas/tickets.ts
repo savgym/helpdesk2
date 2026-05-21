@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const ticketStatusSchema = z.enum(["OPEN", "RESOLVED", "CLOSED"]);
+export const ticketStatusSchema = z.enum(["NEW", "PROCESSING", "OPEN", "RESOLVED", "CLOSED"]);
 export const ticketCategorySchema = z.enum([
   "GENERAL_QUESTION",
   "TECHNICAL_QUESTION",

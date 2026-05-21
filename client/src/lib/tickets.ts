@@ -4,12 +4,16 @@ export const STATUS_VARIANT: Record<
   TicketStatus,
   "default" | "secondary" | "outline"
 > = {
+  NEW: "outline",
+  PROCESSING: "secondary",
   OPEN: "default",
   RESOLVED: "secondary",
   CLOSED: "outline",
 };
 
 export const STATUS_LABEL: Record<TicketStatus, string> = {
+  NEW: "New",
+  PROCESSING: "Processing",
   OPEN: "Open",
   RESOLVED: "Resolved",
   CLOSED: "Closed",
