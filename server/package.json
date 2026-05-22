@@ -12,12 +12,14 @@
     "@ai-sdk/openai": "^3.0.64",
     "@helpdesk/core": "workspace:*",
     "@prisma/client": "^6.0.0",
+    "@sendgrid/inbound-mail-parser": "^8.0.0",
     "ai": "^6.0.185",
     "better-auth": "^1.6.10",
     "cors": "^2.8.5",
     "express": "5",
     "express-rate-limit": "^8.5.1",
     "helmet": "^8.1.0",
+    "multer": "^2.1.1",
     "pg-boss": "^12.18.2",
     "sanitize-html": "^2.17.4",
     "zod": "^4.4.3"
@@ -27,6 +29,7 @@
     "@types/cors": "^2.8.17",
     "@types/express": "5",
     "@types/express-session": "^1.17.10",
+    "@types/multer": "^2.1.0",
     "@types/sanitize-html": "^2.16.1",
     "prisma": "^6.0.0",
     "typescript": "^5.3.3"

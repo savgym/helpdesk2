@@ -8,6 +8,7 @@ import usersRouter from "./routes/users";
 import ticketsRouter from "./routes/tickets";
 import statsRouter from "./routes/stats";
 import inboundRouter from "./routes/inbound";
+import webhooksRouter from "./routes/webhooks";
 
 const app = express();
 
@@ -47,6 +48,7 @@ app.all("/api/auth/*path", (req, res, next) => {
 // Inbound webhook — larger body limit before the global 50 kb cap
 app.use("/api/inbound", express.json({ limit: "5mb" }), express.urlencoded({ extended: true, limit: "5mb" }));
 app.use("/api/inbound", inboundRouter);
+app.use("/api/webhooks", webhooksRouter);
 
 app.use(express.json({ limit: "50kb" }));
 
