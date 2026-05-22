@@ -64,6 +64,7 @@
         "@helpdesk/core": "workspace:*",
         "@prisma/client": "^6.0.0",
         "@sendgrid/inbound-mail-parser": "^8.0.0",
+        "@sendgrid/mail": "^8.1.6",
         "ai": "^6.0.185",
         "better-auth": "^1.6.10",
         "cors": "^2.8.5",
@@ -398,9 +399,13 @@
 
     "@rollup/rollup-win32-x64-msvc": ["@rollup/rollup-win32-x64-msvc@4.60.4", "", { "os": "win32", "cpu": "x64" }, "sha512-QVTUovf40zgTqlFVrKA1uXMVvU2QWEFWfAH8Wdc48IxLvrJMQVMBRjuQyUpzZCDkakImib9eVazbWlC6ksWtJw=="],
 
+    "@sendgrid/client": ["@sendgrid/client@8.1.6", "", { "dependencies": { "@sendgrid/helpers": "^8.0.0", "axios": "^1.12.0" } }, "sha512-/BHu0hqwXNHr2aLhcXU7RmmlVqrdfrbY9KpaNj00KZHlVOVoRxRVrpOCabIB+91ISXJ6+mLM9vpaVUhK6TwBWA=="],
+
     "@sendgrid/helpers": ["@sendgrid/helpers@8.0.0", "", { "dependencies": { "deepmerge": "^4.2.2" } }, "sha512-Ze7WuW2Xzy5GT5WRx+yEv89fsg/pgy3T1E3FS0QEx0/VvRmigMZ5qyVGhJz4SxomegDkzXv/i0aFPpHKN8qdAA=="],
 
     "@sendgrid/inbound-mail-parser": ["@sendgrid/inbound-mail-parser@8.0.0", "", { "dependencies": { "@sendgrid/helpers": "^8.0.0", "mailparser": "^2.3.4" } }, "sha512-y7tH39f3uszeYlq6SGiO3npMpzAGsTWqIl46YjvJNHvaYP7B85YGcINIhm4CPdBA+dA+2wFYbDyvxFVt4ZhpcA=="],
+
+    "@sendgrid/mail": ["@sendgrid/mail@8.1.6", "", { "dependencies": { "@sendgrid/client": "^8.1.5", "@sendgrid/helpers": "^8.0.0" } }, "sha512-/ZqxUvKeEztU9drOoPC/8opEPOk+jLlB2q4+xpx6HVLq6aFu3pMpalkTpAQz8XfRfpLp8O25bh6pGPcHDCYpqg=="],
 
     "@standard-schema/spec": ["@standard-schema/spec@1.1.0", "", {}, "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w=="],
 

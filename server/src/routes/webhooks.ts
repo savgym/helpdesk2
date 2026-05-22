@@ -1,6 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
-import Parse from "@sendgrid/inbound-mail-parser";
+import { z } from "zod";
 import { classifyTicketAsync } from "../lib/classify";
 import { getAIAgentId } from "../lib/aiAgent";
 import prisma from "../lib/prisma";
@@ -8,6 +8,13 @@ import { stripHtml } from "../lib/sanitize";
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
+
+const sendgridSchema = z.object({
+  from:    z.string().min(1),
+  subject: z.string().min(1),
+  text:    z.string().optional(),
+  html:    z.string().optional(),
+}).refine((d) => d.text || d.html, { message: "Email body is required" });
 
 function parseFrom(raw: string): { email: string; name: string } {
   const match = raw.match(/^(.*?)\s*<([^>]+)>$/);
@@ -18,18 +25,15 @@ function parseFrom(raw: string): { email: string; name: string } {
 }
 
 router.post("/inbound-email", upload.none(), async (req, res) => {
-  const raw = (req.body ?? {}) as Record<string, string>;
-
-  if (!raw.from || !raw.subject || (!raw.text && !raw.html)) {
-    res.status(400).json({ error: "Missing required fields" });
+  const result = sendgridSchema.safeParse(req.body);
+  if (!result.success) {
+    res.status(400).json({ error: result.error.issues[0].message });
     return;
   }
 
-  const parse = new Parse({ keys: ["from", "subject", "text", "html"] }, { body: req.body });
-  const fields = parse.keyValues() as Record<string, string>;
-
-  const { email, name } = parseFrom(fields.from);
-  const body = fields.text?.trim() || stripHtml(fields.html || "");
+  const { from, subject, text, html } = result.data;
+  const { email, name } = parseFrom(from);
+  const body = text?.trim() || stripHtml(html || "");
 
   if (!body) {
     res.status(400).json({ error: "Empty email body" });
@@ -42,8 +46,8 @@ router.post("/inbound-email", upload.none(), async (req, res) => {
     data: {
       senderEmail: email,
       senderName:  stripHtml(name),
-      subject:     stripHtml(fields.subject),
-      body,
+      subject:     stripHtml(subject),
+      body:        stripHtml(body),
       ...(aiAgentId && { assignedToId: aiAgentId }),
     },
     select: { id: true, subject: true, body: true, senderEmail: true, senderName: true, createdAt: true },

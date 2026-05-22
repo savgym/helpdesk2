@@ -11,6 +11,7 @@ import { generateText } from "ai";
 import type { Request, Response } from "express";
 import { z } from "zod";
 import prisma from "../lib/prisma";
+import { sendReply } from "../lib/email";
 import { stripHtml } from "../lib/sanitize";
 
 const listTicketsQuerySchema = z.object({
@@ -170,20 +171,21 @@ export async function createMessage(req: Request, res: Response) {
 
   const ticket = await prisma.ticket.findUnique({
     where: { id },
-    select: { id: true },
+    select: { id: true, subject: true, senderEmail: true, senderName: true },
   });
   if (!ticket) {
     return res.status(404).json({ error: "Ticket not found" });
   }
 
+  const body = stripHtml(result.data.body);
+
   const message = await prisma.message.create({
-    data: {
-      ticketId: id,
-      body: stripHtml(result.data.body),
-      senderType: "AGENT",
-    },
+    data: { ticketId: id, body, senderType: "AGENT" },
     select: { id: true, body: true, senderType: true, createdAt: true },
   });
+
+  sendReply({ to: ticket.senderEmail, toName: ticket.senderName, subject: ticket.subject, body })
+    .catch((err) => console.error("[SendGrid error]", err));
 
   res.status(201).json(message);
 }
