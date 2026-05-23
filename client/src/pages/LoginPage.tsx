@@ -3,7 +3,6 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Ticket } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,45 +41,24 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left brand panel */}
-      <div
-        className="hidden lg:flex lg:w-[420px] xl:w-[480px] flex-col justify-between p-10 shrink-0"
-        style={{ backgroundColor: "oklch(0.17 0.06 293)" }}
-      >
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-indigo-400/20 flex items-center justify-center">
-            <Ticket className="h-4 w-4 text-indigo-300" />
+    <div className="min-h-screen flex items-center justify-center bg-background p-6">
+      <div className="w-full max-w-sm space-y-8">
+        {/* Avatar + heading */}
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center">
+            <span className="text-xl font-bold text-primary-foreground">H</span>
           </div>
-          <span className="font-semibold text-white text-base tracking-tight">Helpdesk</span>
-        </div>
-
-        <div className="space-y-4">
-          <p className="text-3xl font-semibold text-white leading-snug">
-            Support that moves<br />at the speed of AI
-          </p>
-          <p className="text-indigo-300 text-sm leading-relaxed max-w-xs">
-            Auto-classify tickets, generate AI summaries, and let your team focus on what matters.
-          </p>
-        </div>
-
-        <p className="text-indigo-500 text-xs">© {new Date().getFullYear()} Helpdesk</p>
-      </div>
-
-      {/* Right form panel */}
-      <div className="flex-1 flex items-center justify-center bg-background p-8">
-        <div className="w-full max-w-sm space-y-6">
-          {/* Mobile logo */}
-          <div className="flex items-center gap-2 lg:hidden">
-            <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Ticket className="h-3.5 w-3.5 text-primary" />
-            </div>
-            <span className="font-semibold text-foreground tracking-tight">Helpdesk</span>
-          </div>
-
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
-            <p className="text-sm text-muted-foreground mt-1">Enter your credentials to continue</p>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Welcome back</h1>
+            <p className="text-sm text-muted-foreground mt-1">Sign in to your helpdesk account</p>
+          </div>
+        </div>
+
+        {/* Form card */}
+        <div className="rounded-xl border border-border bg-card p-6 space-y-5">
+          <div>
+            <h2 className="text-base font-semibold text-foreground">Sign in</h2>
+            <p className="text-sm text-muted-foreground mt-0.5">Enter your credentials to continue</p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
@@ -96,7 +74,7 @@ export default function LoginPage() {
                 id="email"
                 type="email"
                 autoComplete="email"
-                placeholder="you@example.com"
+                placeholder="admin@example.com"
                 aria-invalid={!!errors.email}
                 {...register("email")}
               />
@@ -120,7 +98,7 @@ export default function LoginPage() {
               )}
             </div>
 
-            <Button type="submit" disabled={isSubmitting} className="w-full mt-2">
+            <Button type="submit" disabled={isSubmitting} className="w-full">
               {isSubmitting ? "Signing in…" : "Sign in"}
             </Button>
           </form>
