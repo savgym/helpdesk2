@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/node";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -17,14 +18,16 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'none'"],
-        connectSrc: ["'self'"],
+        connectSrc: ["'self'", "https://*.sentry.io"],
         frameAncestors: ["'none'"],
       },
     },
-  })
+  }),
 );
 
-const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173").split(",");
+const allowedOrigins = (
+  process.env.CLIENT_URL || "http://localhost:5173"
+).split(",");
 app.use(cors({ origin: allowedOrigins, credentials: true }));
 
 if (process.env.NODE_ENV === "production") {
@@ -46,7 +49,11 @@ app.all("/api/auth/*path", (req, res, next) => {
 });
 
 // Inbound webhook — larger body limit before the global 50 kb cap
-app.use("/api/inbound", express.json({ limit: "5mb" }), express.urlencoded({ extended: true, limit: "5mb" }));
+app.use(
+  "/api/inbound",
+  express.json({ limit: "5mb" }),
+  express.urlencoded({ extended: true, limit: "5mb" }),
+);
 app.use("/api/inbound", inboundRouter);
 app.use("/api/webhooks", webhooksRouter);
 
@@ -60,9 +67,18 @@ app.use("/api/users", usersRouter);
 app.use("/api/tickets", ticketsRouter);
 app.use("/api/stats", statsRouter);
 
-app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error(err);
-  res.status(500).json({ error: "Internal server error" });
-});
+Sentry.setupExpressErrorHandler(app);
+
+app.use(
+  (
+    err: Error,
+    _req: express.Request,
+    res: express.Response,
+    _next: express.NextFunction,
+  ) => {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  },
+);
 
 export default app;

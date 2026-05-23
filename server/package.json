@@ -2,8 +2,8 @@
   "name": "helpdesk-server",
   "version": "1.0.0",
   "scripts": {
-    "dev": "bun --watch src/index.ts",
-    "start": "bun src/index.ts",
+    "dev": "bun --watch --preload ./src/instrument.ts ./src/index.ts",
+    "start": "bun --preload ./src/instrument.ts ./src/index.ts",
     "db:generate": "bunx prisma generate",
     "db:migrate": "bunx prisma migrate dev",
     "db:seed": "bun src/prisma/seed.ts"
@@ -14,6 +14,8 @@
     "@prisma/client": "^6.0.0",
     "@sendgrid/inbound-mail-parser": "^8.0.0",
     "@sendgrid/mail": "^8.1.6",
+    "@sentry/node": "^10.53.1",
+    "@sentry/node-core": "^10.53.1",
     "ai": "^6.0.185",
     "better-auth": "^1.6.10",
     "cors": "^2.8.5",
