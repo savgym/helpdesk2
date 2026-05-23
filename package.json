@@ -1,5 +1,9 @@
 {
   "name": "helpdesk",
   "private": true,
-  "workspaces": ["core", "client", "server"]
+  "workspaces": ["core", "client", "server"],
+  "scripts": {
+    "build": "bun run --filter helpdesk-client build && cd server && bunx prisma generate",
+    "start": "cd server && bunx prisma migrate deploy && bun run start"
+  }
 }

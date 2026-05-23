@@ -9,6 +9,27 @@ services:
       POSTGRES_DB: helpdesk
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U helpdesk"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    ports:
+      - "3001:3000"
+    env_file: ./server/.env
+    environment:
+      DATABASE_URL: postgresql://helpdesk:helpdesk@postgres:5432/helpdesk
+      NODE_ENV: production
+      PORT: "3000"
+      BETTER_AUTH_URL: http://localhost:3001
+      CLIENT_URL: http://localhost:3001
+      TRUSTED_ORIGINS: http://localhost:3001
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   postgres_data:

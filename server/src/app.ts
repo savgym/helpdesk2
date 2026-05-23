@@ -1,5 +1,6 @@
 import * as Sentry from "@sentry/node";
 import express from "express";
+import path from "path";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -18,8 +19,14 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'none'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "blob:"],
+        fontSrc: ["'self'"],
         connectSrc: ["'self'", "https://*.sentry.io"],
         frameAncestors: ["'none'"],
+        baseUri: ["'none'"],
+        formAction: ["'self'"],
       },
     },
   }),
@@ -66,6 +73,14 @@ app.get("/api/health", (_req, res) => {
 app.use("/api/users", usersRouter);
 app.use("/api/tickets", ticketsRouter);
 app.use("/api/stats", statsRouter);
+
+if (process.env.NODE_ENV === "production") {
+  const staticDir = path.resolve(__dirname, "../../client/dist");
+  app.use(express.static(staticDir));
+  app.get("/*path", (_req, res) => {
+    res.sendFile(path.join(staticDir, "index.html"));
+  });
+}
 
 Sentry.setupExpressErrorHandler(app);
 
