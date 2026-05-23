@@ -38,7 +38,7 @@ interface Props {
 
 export default function UpdateTicket({ ticket, agents, onUpdate, isPending }: Props) {
   return (
-    <div className="space-y-5 rounded-lg border bg-white p-5">
+    <div className="space-y-5 rounded-lg border bg-card p-5">
       <SidebarField label="Status">
         <Select
           value={ticket.status}

@@ -1,4 +1,6 @@
+import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { LayoutGrid, Clock, Sparkles, TrendingUp, Timer } from "lucide-react";
 import type { DashboardStats } from "@helpdesk/core";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -23,15 +25,15 @@ function formatAxisDate(dateStr: string): string {
 interface StatCardProps {
   title: string;
   value: string | number;
+  icon: ReactNode;
 }
 
-function StatCard({ title, value }: StatCardProps) {
+function StatCard({ title, value, icon }: StatCardProps) {
   return (
     <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          {title}
-        </CardTitle>
+      <CardHeader className="pb-2 flex-row items-start justify-between space-y-0">
+        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+        <span className="text-muted-foreground/60">{icon}</span>
       </CardHeader>
       <CardContent>
         <div className="text-3xl font-bold">{value}</div>
@@ -64,8 +66,8 @@ export default function DashboardPage() {
   });
 
   return (
-    <div className="space-y-6 p-8">
-      <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
 
       {error && (
         <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md px-4 py-3">
@@ -88,44 +90,76 @@ export default function DashboardPage() {
       ) : stats ? (
         <>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-            <StatCard title="Total Tickets" value={stats.totalTickets} />
-            <StatCard title="Open Tickets" value={stats.openTickets} />
-            <StatCard title="Resolved by AI" value={stats.resolvedByAI} />
-            <StatCard title="AI Resolution Rate" value={`${stats.resolvedByAIPercent}%`} />
-            <StatCard title="Avg Resolution Time" value={formatAvgTime(stats.avgResolutionMinutes)} />
+            <StatCard
+              title="Total Tickets"
+              value={stats.totalTickets}
+              icon={<LayoutGrid className="h-4 w-4" />}
+            />
+            <StatCard
+              title="Open Tickets"
+              value={stats.openTickets}
+              icon={<Clock className="h-4 w-4" />}
+            />
+            <StatCard
+              title="Resolved by AI"
+              value={stats.resolvedByAI}
+              icon={<Sparkles className="h-4 w-4" />}
+            />
+            <StatCard
+              title="AI Resolution Rate"
+              value={`${stats.resolvedByAIPercent}%`}
+              icon={<TrendingUp className="h-4 w-4" />}
+            />
+            <StatCard
+              title="Avg Resolution Time"
+              value={formatAvgTime(stats.avgResolutionMinutes)}
+              icon={<Timer className="h-4 w-4" />}
+            />
           </div>
 
           <Card>
             <CardHeader>
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Tickets per Day — Last 30 Days
+                Tickets Per Day
               </CardTitle>
+              <p className="text-xs text-muted-foreground">Last 30 days</p>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={stats.ticketsPerDay} barCategoryGap="30%">
-                  <CartesianGrid vertical={false} stroke="#f0f0f0" />
+                  <CartesianGrid vertical={false} stroke="var(--border)" />
                   <XAxis
                     dataKey="date"
                     tickFormatter={formatAxisDate}
-                    tick={{ fontSize: 11 }}
+                    tick={{ fontSize: 11, fontFamily: "Outfit, sans-serif" }}
                     tickLine={false}
                     axisLine={false}
                     interval={4}
                   />
                   <YAxis
                     allowDecimals={false}
-                    tick={{ fontSize: 11 }}
+                    tick={{ fontSize: 11, fontFamily: "Outfit, sans-serif" }}
                     tickLine={false}
                     axisLine={false}
                     width={24}
                   />
                   <Tooltip
                     formatter={(value) => [value, "Tickets"]}
-                    labelFormatter={(label) => (typeof label === "string" ? formatAxisDate(label) : label)}
-                    cursor={{ fill: "#f4f4f5" }}
+                    labelFormatter={(label) =>
+                      typeof label === "string" ? formatAxisDate(label) : label
+                    }
+                    cursor={{ fill: "oklch(0.97 0 0)" }}
+                    contentStyle={{
+                      fontFamily: "Outfit, sans-serif",
+                      fontSize: 12,
+                      borderRadius: 8,
+                    }}
                   />
-                  <Bar dataKey="count" fill="#18181b" radius={[3, 3, 0, 0]} />
+                  <Bar
+                    dataKey="count"
+                    fill="oklch(0.541 0.281 293)"
+                    radius={[3, 3, 0, 0]}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>

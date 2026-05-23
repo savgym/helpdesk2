@@ -54,7 +54,7 @@ export default function ReplyForm({ ticketId, onSuccess }: Props) {
     <form
       onSubmit={handleSubmit((data) => mutate(data))}
       noValidate
-      className="rounded-lg border bg-white p-5 space-y-3"
+      className="rounded-lg border bg-card p-5 space-y-3"
     >
       <p className="font-semibold">Reply</p>
       <Textarea

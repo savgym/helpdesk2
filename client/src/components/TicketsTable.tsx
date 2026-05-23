@@ -108,11 +108,23 @@ const columns = [
   }),
   columnHelper.accessor("status", {
     header: "Status",
-    cell: (info) => (
-      <Badge variant={STATUS_VARIANT[info.getValue() as TicketStatus]}>
-        {STATUS_LABEL[info.getValue() as TicketStatus]}
-      </Badge>
-    ),
+    cell: (info) => {
+      const status = info.getValue() as TicketStatus;
+      const styles: Record<TicketStatus, { dot: string; badge: string }> = {
+        OPEN:       { dot: "bg-pink-400",  badge: "bg-pink-50 text-pink-600 border-pink-200" },
+        RESOLVED:   { dot: "bg-green-400", badge: "bg-green-50 text-green-700 border-green-200" },
+        CLOSED:     { dot: "bg-gray-400",  badge: "bg-gray-100 text-gray-600 border-gray-200" },
+        NEW:        { dot: "bg-blue-400",  badge: "bg-blue-50 text-blue-600 border-blue-200" },
+        PROCESSING: { dot: "bg-amber-400", badge: "bg-amber-50 text-amber-700 border-amber-200" },
+      };
+      const s = styles[status];
+      return (
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${s.badge}`}>
+          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${s.dot}`} />
+          {STATUS_LABEL[status]}
+        </span>
+      );
+    },
   }),
   columnHelper.accessor("category", {
     header: "Category",
@@ -283,7 +295,7 @@ export function TicketsTable() {
       </div>
 
       {/* Table */}
-      <div className="rounded-md border bg-white">
+      <div className="rounded-md border bg-card">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
