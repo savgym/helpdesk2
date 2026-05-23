@@ -4,6 +4,7 @@ import * as fs from "fs";
 import type { Job } from "pg-boss";
 import * as path from "path";
 import { z } from "zod";
+import { sendReply } from "../lib/email";
 import prisma from "../lib/prisma";
 
 export const AUTO_RESOLVE_TICKET_QUEUE = "auto-resolve-ticket";
@@ -12,6 +13,7 @@ export type AutoResolveTicketJob = {
   id: number;
   subject: string;
   body: string;
+  senderEmail: string;
   senderName: string;
   category: string;
 };
@@ -24,7 +26,7 @@ const autoResolveOutputSchema = z.object({
 export async function autoResolveTicketWorker(
   jobs: Job<AutoResolveTicketJob>[]
 ): Promise<void> {
-  const { id, subject, body, senderName, category } = jobs[0].data;
+  const { id, subject, body, senderEmail, senderName, category } = jobs[0].data;
 
   const firstName = senderName.split(" ")[0];
 
@@ -93,6 +95,8 @@ ${body}`,
       data: { status: "RESOLVED", resolvedByAI: true, resolvedAt: new Date() },
     }),
   ]);
+
+  await sendReply({ to: senderEmail, toName: senderName, subject, body: signed });
 
   console.log(`[auto-resolve] Ticket ${id} auto-resolved.`);
 }

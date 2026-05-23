@@ -7,10 +7,10 @@ import prisma from "../lib/prisma";
 
 export const CLASSIFY_TICKET_QUEUE = "classify-ticket";
 
-export type ClassifyTicketJob = { id: number; subject: string; body: string; senderName: string };
+export type ClassifyTicketJob = { id: number; subject: string; body: string; senderEmail: string; senderName: string };
 
 export async function classifyTicketWorker(jobs: Job<ClassifyTicketJob>[]): Promise<void> {
-  const { id, subject, body, senderName } = jobs[0].data;
+  const { id, subject, body, senderEmail, senderName } = jobs[0].data;
 
   await prisma.ticket.update({ where: { id }, data: { status: "PROCESSING" } });
 
@@ -29,5 +29,5 @@ export async function classifyTicketWorker(jobs: Job<ClassifyTicketJob>[]): Prom
 
   await prisma.ticket.update({ where: { id }, data: { category: category.data } });
 
-  autoResolveTicketAsync({ id, subject, body, senderName, category: category.data });
+  autoResolveTicketAsync({ id, subject, body, senderEmail, senderName, category: category.data });
 }
