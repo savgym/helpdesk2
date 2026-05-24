@@ -121,6 +121,7 @@ export function UsersTable() {
                       <TableCell>
                         <Badge
                           variant={u.role === "ADMIN" ? "default" : "secondary"}
+                          className={u.role === "AGENT" ? "bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-100/80" : ""}
                         >
                           {u.role.toLowerCase()}
                         </Badge>
