@@ -31,7 +31,7 @@ function firstIssue(result: z.ZodSafeParseError<unknown>) {
 
 export async function listUsers(_req: Request, res: Response) {
   const users = await prisma.user.findMany({
-    where: { deletedAt: null },
+    where: { deletedAt: null, email: { not: "ai@helpdesk.internal" } },
     select: USER_SELECT,
     orderBy: { createdAt: "asc" },
   });
@@ -139,12 +139,15 @@ export async function deleteUser(req: Request, res: Response) {
     return res.status(400).json({ error: "You cannot delete your own account" });
   }
 
-  const target = await prisma.user.findUnique({ where: { id }, select: { role: true } });
+  const target = await prisma.user.findUnique({ where: { id }, select: { role: true, email: true } });
   if (!target) {
     return res.status(404).json({ error: "User not found" });
   }
   if (target.role === "ADMIN") {
     return res.status(400).json({ error: "Admin accounts cannot be deleted" });
+  }
+  if (target.email === "ai@helpdesk.internal") {
+    return res.status(400).json({ error: "The AI agent cannot be deleted" });
   }
 
   await prisma.user.update({ where: { id }, data: { deletedAt: new Date() } });
